@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>合租公共事务管理系统</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <h1>🏠 合租公共事务管理</h1>
+                <p class="subtitle">让合租生活更和谐</p>
+            </div>
+            <div class="header-actions">
+                <span id="currentDate" class="current-date"></span>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="dashboard">📊 概览</button>
+            <button class="tab-btn" data-tab="members">👥 成员管理</button>
+            <button class="tab-btn" data-tab="records">📝 事务记录</button>
+            <button class="tab-btn" data-tab="schedule">📅 轮值排班</button>
+            <button class="tab-btn" data-tab="reminders">⏰ 逾期提醒</button>
+        </nav>
+
+        <main class="main-content">
+            <section id="dashboard" class="tab-content active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon trash-icon">🗑️</div>
+                        <div class="stat-info">
+                            <h3>倒垃圾</h3>
+                            <p class="stat-value" id="trashCount">0</p>
+                            <p class="stat-label">本月完成次数</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon paper-icon">🧻</div>
+                        <div class="stat-info">
+                            <h3>续厕纸</h3>
+                            <p class="stat-value" id="paperCount">0</p>
+                            <p class="stat-label">本月完成次数</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon clean-icon">🧹</div>
+                        <div class="stat-info">
+                            <h3>公区卫生</h3>
+                            <p class="stat-value" id="cleanCount">0</p>
+                            <p class="stat-label">本月完成次数</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon member-icon">👥</div>
+                        <div class="stat-info">
+                            <h3>合租成员</h3>
+                            <p class="stat-value" id="memberCount">0</p>
+                            <p class="stat-label">当前人数</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-section">
+                    <h2>🚨 待处理事项</h2>
+                    <div id="pendingTasks" class="task-list">
+                        <p class="empty-state">暂无待处理事项</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-section">
+                    <h2>📋 最近动态</h2>
+                    <div id="recentActivity" class="activity-list">
+                        <p class="empty-state">暂无记录</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-section">
+                    <h2>🏆 贡献排行榜</h2>
+                    <div id="ranking" class="ranking-list">
+                        <p class="empty-state">暂无数据</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="members" class="tab-content">
+                <div class="section-header">
+                    <h2>👥 成员管理</h2>
+                    <button class="btn btn-primary" id="addMemberBtn">+ 添加成员</button>
+                </div>
+                <div id="membersList" class="members-grid">
+                </div>
+            </section>
+
+            <section id="records" class="tab-content">
+                <div class="section-header">
+                    <h2>📝 事务记录</h2>
+                    <button class="btn btn-primary" id="addRecordBtn">+ 添加记录</button>
+                </div>
+
+                <div class="filter-bar">
+                    <select id="filterType" class="filter-select">
+                        <option value="all">全部类型</option>
+                        <option value="trash">倒垃圾</option>
+                        <option value="paper">续厕纸</option>
+                        <option value="clean">公区卫生</option>
+                    </select>
+                    <select id="filterMember" class="filter-select">
+                        <option value="all">全部成员</option>
+                    </select>
+                </div>
+
+                <div id="recordsList" class="records-list">
+                </div>
+            </section>
+
+            <section id="schedule" class="tab-content">
+                <div class="section-header">
+                    <h2>📅 轮值排班</h2>
+                    <button class="btn btn-primary" id="addScheduleBtn">+ 新建排班</button>
+                </div>
+
+                <div class="schedule-grid">
+                    <div class="schedule-column">
+                        <h3 class="schedule-type-header trash-header">🗑️ 倒垃圾</h3>
+                        <div id="scheduleTrash" class="schedule-list"></div>
+                    </div>
+                    <div class="schedule-column">
+                        <h3 class="schedule-type-header paper-header">🧻 续厕纸</h3>
+                        <div id="schedulePaper" class="schedule-list"></div>
+                    </div>
+                    <div class="schedule-column">
+                        <h3 class="schedule-type-header clean-header">🧹 公区卫生</h3>
+                        <div id="scheduleClean" class="schedule-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="reminders" class="tab-content">
+                <div class="section-header">
+                    <h2>⏰ 逾期提醒</h2>
+                </div>
+                <div id="remindersList" class="reminders-list">
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay hidden">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">标题</h3>
+                <button class="modal-close" id="modalClose">×</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
