@@ -35,6 +35,10 @@ export class BillsModule {
         container.innerHTML = filtered.map(bill => {
             const category = BILL_CATEGORIES[bill.category] || BILL_CATEGORIES.other;
             const member = this.memberService.getById(bill.payerId);
+            const allMembers = this.memberService.getAll();
+            const sharedNames = bill.sharedBy && bill.sharedBy.length > 0
+                ? bill.sharedBy.map(id => allMembers.find(m => m.id === id)?.name).filter(Boolean).join('、')
+                : allMembers.map(m => m.name).join('、');
             return `
                 <div class="bill-item ${bill.settled ? 'settled' : ''}">
                     <div class="bill-info">
@@ -42,6 +46,7 @@ export class BillsModule {
                         <div class="bill-details">
                             <h4>${category.name}${bill.settled ? ' <span class="bill-settled-badge">已结清</span>' : ''}</h4>
                             <p>付款人: ${member ? member.name : '未知成员'} · ${formatDate(bill.date)}</p>
+                            <p class="bill-shared-by">分摊: ${sharedNames}</p>
                             ${bill.note ? `<p class="bill-note">${bill.note}</p>` : ''}
                         </div>
                     </div>
@@ -212,8 +217,15 @@ export class BillsModule {
         const note = document.getElementById('billNote').value.trim();
         const date = new Date(dateStr).getTime();
 
+        const sharedCheckboxes = document.querySelectorAll('input[name="billSharedBy"]:checked');
+        const sharedBy = Array.from(sharedCheckboxes).map(cb => cb.value);
+
         if (!amount || parseFloat(amount) <= 0) {
             this.toast.show('请输入有效金额');
+            return;
+        }
+        if (sharedBy.length === 0) {
+            this.toast.show('请至少选择一个分摊成员');
             return;
         }
 
@@ -223,7 +235,8 @@ export class BillsModule {
             payerId,
             date,
             note,
-            evidence: this._currentEvidenceBase64
+            evidence: this._currentEvidenceBase64,
+            sharedBy
         };
 
         if (editId) {

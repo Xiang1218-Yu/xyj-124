@@ -50,16 +50,24 @@ export class BillService {
         const bills = this.getAll().filter(b => !b.settled);
         if (bills.length === 0 || members.length === 0) return [];
 
-        const totalAmount = bills.reduce((sum, b) => sum + b.amount, 0);
-        const perPerson = Math.round((totalAmount / members.length) * 100) / 100;
-
+        const memberIds = members.map(m => m.id);
         const balances = {};
-        members.forEach(m => { balances[m.id] = -perPerson; });
+        memberIds.forEach(id => { balances[id] = 0; });
 
-        bills.forEach(b => {
-            if (balances[b.payerId] !== undefined) {
-                balances[b.payerId] += b.amount;
-            }
+        bills.forEach(bill => {
+            const sharedBy = bill.sharedBy && bill.sharedBy.length > 0
+                ? bill.sharedBy.filter(id => memberIds.includes(id))
+                : memberIds;
+
+            if (sharedBy.length === 0) return;
+
+            const perShare = Math.round((bill.amount / sharedBy.length) * 100) / 100;
+
+            sharedBy.forEach(id => {
+                balances[id] -= perShare;
+            });
+
+            balances[bill.payerId] += bill.amount;
         });
 
         const debtors = [];
@@ -67,10 +75,11 @@ export class BillService {
         Object.entries(balances).forEach(([memberId, balance]) => {
             const member = members.find(m => m.id === memberId);
             if (!member) return;
-            if (balance < -0.01) {
-                debtors.push({ memberId, name: member.name, amount: Math.abs(balance) });
-            } else if (balance > 0.01) {
-                creditors.push({ memberId, name: member.name, amount: balance });
+            const rounded = Math.round(balance * 100) / 100;
+            if (rounded < -0.01) {
+                debtors.push({ memberId, name: member.name, amount: Math.abs(rounded) });
+            } else if (rounded > 0.01) {
+                creditors.push({ memberId, name: member.name, amount: rounded });
             }
         });
 
@@ -202,6 +211,7 @@ export class BillService {
             date: data.date,
             note: data.note || '',
             evidence: data.evidence || null,
+            sharedBy: data.sharedBy && data.sharedBy.length > 0 ? data.sharedBy : [],
             settled: false,
             createdAt: Date.now()
         };

@@ -1072,6 +1072,52 @@ body {
     color: var(--text-secondary);
 }
 
+.member-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.member-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.member-checkbox:hover {
+    background: var(--card);
+    border-color: var(--primary);
+}
+
+.member-checkbox input[type="checkbox"] {
+    margin: 0;
+    accent-color: var(--primary);
+}
+
+.member-checkbox-label {
+    user-select: none;
+}
+
+.member-checkbox:has(input:checked) {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.bill-shared-by {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
 .modal-overlay {
     position: fixed;
     inset: 0;

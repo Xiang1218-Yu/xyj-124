@@ -170,6 +170,23 @@ export class FormField {
                 </div>
                 ${FormField.date('billDate', '账单日期', { required: true, value: dateValue })}
                 <div class="form-group">
+                    <label>分摊成员</label>
+                    <div class="member-checkboxes">
+                        ${members.map(m => {
+                            const checked = bill && bill.sharedBy && bill.sharedBy.length > 0
+                                ? bill.sharedBy.includes(m.id)
+                                : true;
+                            return `
+                                <label class="member-checkbox">
+                                    <input type="checkbox" name="billSharedBy" value="${m.id}" ${checked ? 'checked' : ''}>
+                                    <span class="member-checkbox-label">${m.name}</span>
+                                </label>
+                            `;
+                        }).join('')}
+                    </div>
+                    <p class="form-hint">不选则默认所有成员分摊</p>
+                </div>
+                <div class="form-group">
                     <label>账单依据</label>
                     <input type="file" id="billEvidence" accept="image/*" class="file-input">
                     <p class="form-hint">支持图片文件，最大5MB</p>
