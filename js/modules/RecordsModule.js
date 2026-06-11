@@ -22,6 +22,13 @@ export class RecordsModule {
         return this.taskTypeService.getAllAsObject();
     }
 
+    _rgba(hex, alpha = 0.15) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
     renderRecords() {
         const container = document.getElementById('recordsList');
         const filterType = document.getElementById('filterType').value;
@@ -39,9 +46,9 @@ export class RecordsModule {
             const type = taskTypes[record.type];
             if (!type) return '';
             return `
-                <div class="record-item">
+                <div class="record-item" style="border-left: 4px solid ${type.color};">
                     <div class="record-info">
-                        <span class="record-emoji">${type.emoji}</span>
+                        <span class="record-emoji" style="background: ${this._rgba(type.color)};">${type.emoji}</span>
                         <div class="record-details">
                             <h4>${type.name}</h4>
                             <p>${member ? member.name : '未知成员'} · ${formatDateTime(record.date)}</p>

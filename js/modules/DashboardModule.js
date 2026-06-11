@@ -54,6 +54,13 @@ export class DashboardModule {
         grid.innerHTML = statCards.join('');
     }
 
+    _rgba(hex, alpha = 0.15) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
     renderPendingTasks() {
         const container = document.getElementById('pendingTasks');
         const pending = this.scheduleService.getPending();
@@ -83,9 +90,10 @@ export class DashboardModule {
                     : `还剩 ${task.daysDiff} 天`;
 
             return `
-                <div class="task-item ${!isOverdue && task.daysDiff <= 1 ? 'warning' : ''}">
+                <div class="task-item ${!isOverdue && task.daysDiff <= 1 ? 'warning' : ''}"
+                     style="border-left: 4px solid ${type.color};">
                     <div class="task-info">
-                        <span class="task-emoji">${type.emoji}</span>
+                        <span class="task-emoji" style="background: ${this._rgba(type.color)};">${type.emoji}</span>
                         <div class="task-details">
                             <h4>${type.name} - ${member ? member.name : '未知成员'}</h4>
                             <p>${formatDate(task.date)} · ${timeText}</p>
@@ -114,8 +122,8 @@ export class DashboardModule {
             const type = taskTypes[record.type];
             if (!type) return '';
             return `
-                <div class="activity-item">
-                    <span class="activity-emoji">${type.emoji}</span>
+                <div class="activity-item" style="border-left: 4px solid ${type.color};">
+                    <span class="activity-emoji" style="background: ${this._rgba(type.color)};">${type.emoji}</span>
                     <div class="activity-content">
                         <p><strong>${member ? member.name : '未知成员'}</strong> 完成了 ${type.name}</p>
                         <span class="activity-time">${formatDateTime(record.date)}</span>

@@ -50,6 +50,7 @@ export class ScheduleModule {
         if (!container) return;
 
         const schedules = this.scheduleService.getByType(typeId);
+        const typeObj = this.taskTypeService.getById(typeId);
 
         if (schedules.length === 0) {
             container.innerHTML = EmptyState.render('暂无排班');
@@ -81,8 +82,9 @@ export class ScheduleModule {
                 statusText = `${daysDiff} 天后`;
             }
 
+            const colorStyle = typeObj ? `border-left: 4px solid ${typeObj.color};` : '';
             return `
-                <div class="schedule-item ${itemClass}">
+                <div class="schedule-item ${itemClass}" style="${colorStyle}">
                     <div class="schedule-person">
                         ${Avatar.render(member, 'sm')}
                         <div>

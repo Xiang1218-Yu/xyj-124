@@ -9,6 +9,13 @@ export class RemindersModule {
         this.taskTypeService = taskTypeService;
     }
 
+    _rgba(hex, alpha = 0.15) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
     render() {
         const container = document.getElementById('remindersList');
         const reminders = this.reminderService.getAll(this.taskTypeService);
@@ -48,8 +55,8 @@ export class RemindersModule {
             : `上次完成是 ${reminder.daysSinceLast} 天前${lastMember ? '（' + lastMember.name + '）' : ''}`;
 
         return `
-            <div class="reminder-item">
-                <span class="reminder-icon">${type.emoji}</span>
+            <div class="reminder-item" style="border-left: 4px solid ${type.color};">
+                <span class="reminder-icon" style="background: ${this._rgba(type.color)};">${type.emoji}</span>
                 <div class="reminder-content">
                     <h3>${type.name} 需要处理了！</h3>
                     <p>${timeText}</p>
@@ -71,8 +78,8 @@ export class RemindersModule {
                 : '明天需要完成';
 
         return `
-            <div class="reminder-item ${isWarning ? 'warning' : ''}">
-                <span class="reminder-icon">${type.emoji}</span>
+            <div class="reminder-item ${isWarning ? 'warning' : ''}" style="border-left: 4px solid ${type.color};">
+                <span class="reminder-icon" style="background: ${this._rgba(type.color)};">${type.emoji}</span>
                 <div class="reminder-content">
                     <h3>${type.name} - ${member ? member.name : '未知成员'}</h3>
                     <p>排定日期：${formatDate(reminder.date)}</p>

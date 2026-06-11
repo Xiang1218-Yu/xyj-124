@@ -109,6 +109,7 @@ export class TaskTypesModule {
                 this._draggedId = card.dataset.id;
                 card.classList.add('dragging');
                 e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', card.dataset.id);
             });
 
             card.addEventListener('dragend', () => {
@@ -116,6 +117,7 @@ export class TaskTypesModule {
                 document.querySelectorAll('.task-type-card').forEach(c => {
                     c.classList.remove('drag-over-top', 'drag-over-bottom');
                 });
+                this._draggedId = null;
             });
 
             card.addEventListener('dragover', (e) => {
@@ -137,23 +139,26 @@ export class TaskTypesModule {
 
             card.addEventListener('drop', (e) => {
                 e.preventDefault();
-                if (!this._draggedId || this._draggedId === card.dataset.id) return;
+                e.stopPropagation();
+                const draggedId = e.dataTransfer.getData('text/plain') || this._draggedId;
+                if (!draggedId || draggedId === card.dataset.id) return;
 
-                const allIds = Array.from(cards).map(c => c.dataset.id);
-                const draggedIndex = allIds.indexOf(this._draggedId);
-                const targetIndex = allIds.indexOf(card.dataset.id);
+                const liveCards = document.querySelectorAll('.task-type-card');
+                const allIds = Array.from(liveCards).map(c => c.dataset.id);
+                const targetId = card.dataset.id;
                 const rect = card.getBoundingClientRect();
                 const midY = rect.top + rect.height / 2;
                 const insertBefore = e.clientY < midY;
 
-                allIds.splice(draggedIndex, 1);
-                const newInsertIndex = insertBefore ? targetIndex : targetIndex + 1;
-                const adjustedIndex = draggedIndex < targetIndex ? newInsertIndex - 1 : newInsertIndex;
-                allIds.splice(adjustedIndex, 0, this._draggedId);
+                const draggedIdx = allIds.indexOf(draggedId);
+                const targetIdx = allIds.indexOf(targetId);
+                allIds.splice(draggedIdx, 1);
+                let insertIdx = allIds.indexOf(targetId);
+                if (!insertBefore) insertIdx += 1;
+                allIds.splice(insertIdx, 0, draggedId);
 
                 this.taskTypeService.reorder(allIds);
                 this.toast.show('排序已更新');
-                this._draggedId = null;
             });
         });
     }
