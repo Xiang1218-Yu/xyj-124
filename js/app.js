@@ -6,6 +6,7 @@ import { ReminderService } from './services/ReminderService.js';
 import { BillService } from './services/BillService.js';
 import { InventoryService } from './services/InventoryService.js';
 import { MessageService } from './services/MessageService.js';
+import { VoteService } from './services/VoteService.js';
 import { Modal } from './components/Modal.js';
 import { Toast } from './components/Toast.js';
 import { TabNav } from './components/TabNav.js';
@@ -17,6 +18,7 @@ import { InventoryModule } from './modules/InventoryModule.js';
 import { BillsModule } from './modules/BillsModule.js';
 import { RemindersModule } from './modules/RemindersModule.js';
 import { MessagesModule } from './modules/MessagesModule.js';
+import { VotesModule } from './modules/VotesModule.js';
 import { getCurrentDateDisplay } from './utils/helpers.js';
 
 class App {
@@ -29,7 +31,8 @@ class App {
             settlements: [],
             inventoryItems: [],
             inventoryLogs: [],
-            messages: []
+            messages: [],
+            votes: []
         });
 
         this.memberService = new MemberService(this.store);
@@ -39,6 +42,7 @@ class App {
         this.billService = new BillService(this.store);
         this.inventoryService = new InventoryService(this.store);
         this.messageService = new MessageService(this.store);
+        this.voteService = new VoteService(this.store);
 
         this.modal = new Modal();
         this.toast = new Toast();
@@ -66,6 +70,9 @@ class App {
         );
         this.messagesModule = new MessagesModule(
             this.store, this.memberService, this.messageService, this.modal, this.toast
+        );
+        this.votesModule = new VotesModule(
+            this.store, this.memberService, this.voteService, this.modal, this.toast
         );
 
         this.billsModule.setOnBillSavedCallback((billId, inventoryItemId, inventoryQty) => {
@@ -110,6 +117,9 @@ class App {
 
             const messages = this.messageService.generateSampleMessages(members);
             this.store.set('messages', messages);
+
+            const votes = this.voteService.generateSampleVotes(members);
+            this.store.set('votes', votes);
         });
         this.store.persist();
     }
@@ -147,6 +157,10 @@ class App {
         });
         document.getElementById('addMessageBtn').addEventListener('click', () => {
             this.messagesModule.showAddModal();
+        });
+        const addVoteBtn = document.getElementById('addVoteBtn');
+        if (addVoteBtn) addVoteBtn.addEventListener('click', () => {
+            this.votesModule.showAddModal();
         });
 
         document.getElementById('filterType').addEventListener('change', () => {
@@ -188,6 +202,7 @@ class App {
         this.scheduleModule.render();
         this.inventoryModule.render();
         this.billsModule.render();
+        this.votesModule.render();
         this.messagesModule.render();
         this.remindersModule.render();
     }
@@ -241,6 +256,16 @@ class App {
             showReplyInput: (messageId) => this.messagesModule.showReplyInput(messageId),
             hideReplyInput: (messageId) => this.messagesModule.hideReplyInput(messageId),
             submitReply: (messageId) => this.messagesModule.submitReply(messageId),
+
+            createVote: () => this.votesModule.createVote(),
+            addVoteOptionInput: () => this.votesModule.addVoteOptionInput(),
+            toggleMaxChoices: () => this.votesModule.toggleMaxChoices(),
+            switchVoteTab: (tab) => this.votesModule.switchTab(tab),
+            openVoteDetail: (voteId) => this.votesModule.openVoteDetail(voteId),
+            submitVote: (voteId) => this.votesModule.submitVote(voteId),
+            archiveVote: (voteId) => this.votesModule.archiveVote(voteId),
+            unarchiveVote: (voteId) => this.votesModule.unarchiveVote(voteId),
+            validateVoteChoices: () => this.votesModule.validateVoteChoices(),
             scrollToBill: (billId) => {
                 this.tabNav.switchTo('bills');
                 setTimeout(() => {

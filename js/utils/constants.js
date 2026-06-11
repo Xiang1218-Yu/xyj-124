@@ -46,5 +46,19 @@ export const TAB_CONFIG = [
     { id: 'schedule', label: '📅 轮值排班' },
     { id: 'inventory', label: '📦 物品库存' },
     { id: 'bills', label: '💰 账单管理' },
+    { id: 'votes', label: '🗳️ 公共投票' },
     { id: 'reminders', label: '⏰ 逾期提醒' }
+];
+
+export const VOTE_TYPES = {
+    purchase: { name: '物品采购', emoji: '🛒', color: '#f59e0b' },
+    schedule: { name: '排班调整', emoji: '📅', color: '#6366f1' },
+    rule: { name: '规则修改', emoji: '📋', color: '#10b981' },
+    expense: { name: '费用分摊', emoji: '💰', color: '#ef4444' },
+    other: { name: '其他事务', emoji: '🗳️', color: '#8b5cf6' }
+};
+
+export const VOTE_OPTION_COLORS = [
+    '#6366f1', '#ec4899', '#10b981', '#f59e0b', '#ef4444',
+    '#8b5cf6', '#06b6d4', '#84cc16', '#f97316', '#14b8a6'
 ];
