@@ -27,13 +27,13 @@ export class DashboardModule {
         const monthExpense = this.billService.getMonthTotal(monthStart);
 
         const grid = document.querySelector('#dashboard .stats-grid');
-        grid.innerHTML = StatCard.renderGrid([
+        grid.innerHTML = [
             StatCard.render('trash-icon', '🗑️', '倒垃圾', monthRecords.filter(r => r.type === 'trash').length, '本月完成次数'),
             StatCard.render('paper-icon', '🧻', '续厕纸', monthRecords.filter(r => r.type === 'paper').length, '本月完成次数'),
             StatCard.render('clean-icon', '🧹', '公区卫生', monthRecords.filter(r => r.type === 'clean').length, '本月完成次数'),
             StatCard.render('member-icon', '👥', '合租成员', members.length, '当前人数'),
             StatCard.render('bill-icon', '💰', '本月支出', `¥${monthExpense.toFixed(0)}`, '本月账单总额')
-        ]);
+        ].join('');
     }
 
     renderPendingTasks() {

@@ -36,11 +36,11 @@ export class FormField {
     }
 
     static textarea(id, label, options = {}) {
-        const { placeholder } = options;
+        const { placeholder, value } = options;
         return `
             <div class="form-group">
                 <label>${label}</label>
-                <textarea id="${id}" ${placeholder ? `placeholder="${placeholder}"` : ''}></textarea>
+                <textarea id="${id}" ${placeholder ? `placeholder="${placeholder}"` : ''}>${value || ''}</textarea>
             </div>
         `;
     }
@@ -175,8 +175,7 @@ export class FormField {
                     <p class="form-hint">支持图片文件，最大5MB</p>
                     ${evidencePreview}
                 </div>
-                ${FormField.textarea('billNote', '备注（可选）', { placeholder: '补充说明...' })}
-                ${bill && bill.note ? '' : ''}
+                ${FormField.textarea('billNote', '备注（可选）', { placeholder: '补充说明...', value: bill ? bill.note : '' })}
                 ${FormField.actions(
                     '<button type="button" class="btn btn-secondary" onclick="window._app.closeModal()">取消</button>',
                     `<button type="submit" class="btn btn-primary">${bill ? '保存' : '添加'}</button>`
