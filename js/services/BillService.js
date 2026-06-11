@@ -3,6 +3,7 @@ import { generateId } from '../utils/helpers.js';
 export class BillService {
     constructor(store) {
         this.store = store;
+        this._refreshing = false;
     }
 
     getAll() {
@@ -45,7 +46,7 @@ export class BillService {
         return result;
     }
 
-    calculateSettlement(members) {
+    _calculateRawSettlement(members) {
         const bills = this.getAll().filter(b => !b.settled);
         if (bills.length === 0 || members.length === 0) return [];
 
@@ -76,12 +77,12 @@ export class BillService {
         debtors.sort((a, b) => b.amount - a.amount);
         creditors.sort((a, b) => b.amount - a.amount);
 
-        const settlements = [];
+        const raw = [];
         let i = 0, j = 0;
         while (i < debtors.length && j < creditors.length) {
             const payAmount = Math.min(debtors[i].amount, creditors[j].amount);
             if (payAmount > 0.01) {
-                settlements.push({
+                raw.push({
                     from: debtors[i].name,
                     fromId: debtors[i].memberId,
                     to: creditors[j].name,
@@ -94,8 +95,102 @@ export class BillService {
             if (debtors[i].amount < 0.01) i++;
             if (creditors[j].amount < 0.01) j++;
         }
+        return raw;
+    }
 
-        return settlements;
+    getSettlements() {
+        return this.store.get('settlements') || [];
+    }
+
+    refreshSettlements(members) {
+        if (this._refreshing) {
+            return this.getSettlements();
+        }
+        this._refreshing = true;
+        try {
+            const raw = this._calculateRawSettlement(members);
+            const existing = this.getSettlements();
+
+            const matches = (s, r) =>
+                s.fromId === r.fromId && s.toId === r.toId &&
+                Math.abs(s.amount - r.amount) < 0.01;
+
+            const usedIds = new Set();
+            const result = [];
+            raw.forEach(r => {
+                const found = existing.find(s => matches(s, r));
+                if (found) {
+                    result.push(found);
+                    usedIds.add(found.id);
+                } else {
+                    result.push({
+                        id: generateId(),
+                        ...r,
+                        settled: false,
+                        createdAt: Date.now()
+                    });
+                }
+            });
+
+            existing.filter(s => s.settled && !usedIds.has(s.id)).forEach(s => {
+                result.push(s);
+            });
+
+            const isSame = existing.length === result.length &&
+                existing.every(s => {
+                    const r = result.find(x => x.id === s.id);
+                    return r && r.settled === s.settled && Math.abs(r.amount - s.amount) < 0.01;
+                });
+            if (!isSame) {
+                this.store.set('settlements', result);
+            }
+            return result;
+        } finally {
+            this._refreshing = false;
+        }
+    }
+
+    calculateSettlement(members) {
+        const raw = this._calculateRawSettlement(members);
+        const existing = this.getSettlements();
+
+        const matches = (s, r) =>
+            s.fromId === r.fromId && s.toId === r.toId &&
+            Math.abs(s.amount - r.amount) < 0.01;
+
+        const result = [];
+        raw.forEach(r => {
+            const found = existing.find(s => !s.settled && matches(s, r));
+            result.push(found || {
+                id: '__tmp__' + r.fromId + '_' + r.toId + '_' + r.amount,
+                ...r,
+                settled: false
+            });
+        });
+
+        existing.filter(s => s.settled).forEach(s => {
+            if (!result.find(r => r.id === s.id)) {
+                result.push(s);
+            }
+        });
+
+        return result;
+    }
+
+    markSettlementDone(settlementId) {
+        this.store.update('settlements', list =>
+            (list || []).map(s => s.id === settlementId ? { ...s, settled: true, settledAt: Date.now() } : s)
+        );
+    }
+
+    markAllSettlementsDone() {
+        this.store.update('settlements', list =>
+            (list || []).map(s => ({ ...s, settled: true, settledAt: Date.now() }))
+        );
+    }
+
+    resetSettlements() {
+        this.store.set('settlements', []);
     }
 
     add(data) {
@@ -140,5 +235,11 @@ export class BillService {
 
     getSettledTotal() {
         return this.getAll().filter(b => b.settled).reduce((sum, b) => sum + b.amount, 0);
+    }
+
+    deleteSettlementsByMember(memberId) {
+        this.store.update('settlements', list =>
+            (list || []).filter(s => s.fromId !== memberId && s.toId !== memberId)
+        );
     }
 }

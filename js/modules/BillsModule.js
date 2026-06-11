@@ -62,16 +62,20 @@ export class BillsModule {
     renderSettlement() {
         const container = document.getElementById('settlementList');
         const members = this.memberService.getAll();
-        const settlements = this.billService.calculateSettlement(members);
-        const unsettledTotal = this.billService.getUnsettledTotal();
+        this.billService.refreshSettlements(members);
+        const settlements = this.billService.getSettlements();
+        const unsettledSettlements = settlements.filter(s => !s.settled);
+        const unsettledAmount = unsettledSettlements.reduce((sum, s) => sum + s.amount, 0);
 
         const summaryEl = document.getElementById('settlementSummary');
         if (summaryEl) {
-            if (unsettledTotal > 0) {
-                summaryEl.innerHTML = `<span class="settlement-unsettled">未结清总额: <strong>¥${unsettledTotal.toFixed(2)}</strong></span>
-                    <button class="btn btn-sm btn-primary" onclick="window._app.settleAllBills()" style="margin-left: 12px;">全部结清</button>`;
+            if (unsettledSettlements.length > 0) {
+                summaryEl.innerHTML = `<span class="settlement-unsettled">待结算: <strong>¥${unsettledAmount.toFixed(2)}</strong> / ${unsettledSettlements.length} 笔</span>
+                    <button class="btn btn-sm btn-primary" onclick="window._app.settleAllSettlements()" style="margin-left: 12px;">全部结清</button>`;
+            } else if (settlements.length > 0) {
+                summaryEl.innerHTML = '<span class="settlement-cleared">✅ 所有分摊已结清</span>';
             } else {
-                summaryEl.innerHTML = '<span class="settlement-cleared">✅ 所有账单已结清</span>';
+                summaryEl.innerHTML = '';
             }
         }
 
@@ -81,10 +85,18 @@ export class BillsModule {
         }
 
         container.innerHTML = settlements.map(s => `
-            <div class="settlement-item">
-                <span class="settlement-from">${s.from}</span>
-                <span class="settlement-arrow">→ 支付 ¥${s.amount.toFixed(2)} →</span>
-                <span class="settlement-to">${s.to}</span>
+            <div class="settlement-item ${s.settled ? 'settlement-done' : ''}">
+                <div class="settlement-row">
+                    <span class="settlement-from">${s.from}</span>
+                    <span class="settlement-arrow">→ 支付 ¥${s.amount.toFixed(2)} →</span>
+                    <span class="settlement-to">${s.to}</span>
+                </div>
+                <div class="settlement-actions">
+                    ${s.settled
+                        ? '<span class="settlement-done-badge">已结清</span>'
+                        : `<button class="btn btn-sm btn-success" onclick="window._app.settleOneSettlement('${s.id}')" title="标记已结清">✓ 已转账</button>`
+                    }
+                </div>
             </div>
         `).join('');
     }
@@ -235,10 +247,21 @@ export class BillsModule {
         this.toast.show('账单已结清');
     }
 
+    settleOneSettlement(settlementId) {
+        this.billService.markSettlementDone(settlementId);
+        this.toast.show('已标记转账完成');
+    }
+
     settleAllBills() {
         if (!confirm('确定将所有未结清账单标记为已结清吗？')) return;
         this.billService.markAllSettled();
         this.toast.show('所有账单已结清');
+    }
+
+    settleAllSettlements() {
+        if (!confirm('确定将所有分摊转账标记为已结清吗？')) return;
+        this.billService.markAllSettlementsDone();
+        this.toast.show('所有分摊已结清');
     }
 
     viewBillEvidence(billId) {

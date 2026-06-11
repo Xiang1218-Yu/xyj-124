@@ -37,6 +37,10 @@ export class MemberService {
             this.store.update('members', members => members.filter(m => m.id !== id));
             this.store.update('records', records => records.filter(r => r.memberId !== id));
             this.store.update('schedules', schedules => schedules.filter(s => s.memberId !== id));
+            this.store.update('bills', bills => bills.filter(b => b.payerId !== id));
+            this.store.update('settlements', settlements =>
+                (settlements || []).filter(s => s.fromId !== id && s.toId !== id)
+            );
         });
     }
 

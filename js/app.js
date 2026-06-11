@@ -21,7 +21,8 @@ class App {
             members: [],
             records: [],
             schedules: [],
-            bills: []
+            bills: [],
+            settlements: []
         });
 
         this.memberService = new MemberService(this.store);
@@ -168,6 +169,8 @@ class App {
             deleteBill: (billId) => this.billsModule.deleteBill(billId),
             settleBill: (billId) => this.billsModule.settleBill(billId),
             settleAllBills: () => this.billsModule.settleAllBills(),
+            settleOneSettlement: (settlementId) => this.billsModule.settleOneSettlement(settlementId),
+            settleAllSettlements: () => this.billsModule.settleAllSettlements(),
             viewBillEvidence: (billId) => this.billsModule.viewBillEvidence(billId),
 
             closeModal: () => this.modal.close()
