@@ -133,7 +133,7 @@ export class FormField {
         const enabledTaskTypes = Object.fromEntries(
             Object.entries(taskTypes).filter(([, v]) => v.enabled !== false)
         );
-        const firstKey = Object.keys(enabledTaskTypes)[0] || 'trash';
+        const firstKey = Object.keys(enabledTaskTypes)[0] || '';
         return `
             <form onsubmit="window._app.handleSaveRecord(event)">
                 ${FormField.typeSelect('recordType', type || firstKey, enabledTaskTypes)}
@@ -168,7 +168,7 @@ export class FormField {
         const enabledTaskTypes = Object.fromEntries(
             Object.entries(taskTypes).filter(([, v]) => v.enabled !== false)
         );
-        const firstKey = Object.keys(enabledTaskTypes)[0] || 'trash';
+        const firstKey = Object.keys(enabledTaskTypes)[0] || '';
         return `
             <form onsubmit="window._app.handleSaveSchedule(event)">
                 ${FormField.typeSelect('scheduleType', firstKey, enabledTaskTypes)}

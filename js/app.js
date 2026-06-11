@@ -112,7 +112,7 @@ class App {
             const members = this.memberService.generateSampleMembers();
             this.store.set('members', members);
 
-            const records = this.recordService.generateSampleRecords(members);
+            const records = this.recordService.generateSampleRecords(members, this.taskTypeService);
             this.store.set('records', records);
 
             const schedules = this.scheduleService.generateDefaultSchedules(members, this.taskTypeService);

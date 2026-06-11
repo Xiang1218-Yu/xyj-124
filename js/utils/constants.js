@@ -3,6 +3,7 @@ export const DEFAULT_TASK_TYPES = {
     paper: { name: '续厕纸', emoji: '🧻', defaultInterval: 3 },
     clean: { name: '公区卫生', emoji: '🧹', defaultInterval: 7 }
 };
+export const TASK_TYPES = DEFAULT_TASK_TYPES;
 
 export const TASK_COLORS = [
     '#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6',
@@ -48,11 +49,13 @@ export const INVENTORY_LOG_TYPES = {
 export const TAB_CONFIG = [
     { id: 'dashboard', label: '📊 概览' },
     { id: 'members', label: '👥 成员管理' },
+    { id: 'tasktypes', label: '⚙️ 任务配置' },
     { id: 'records', label: '📝 事务记录' },
     { id: 'schedule', label: '📅 轮值排班' },
     { id: 'inventory', label: '📦 物品库存' },
     { id: 'bills', label: '💰 账单管理' },
     { id: 'votes', label: '🗳️ 公共投票' },
+    { id: 'messages', label: '💬 公共留言' },
     { id: 'reminders', label: '⏰ 逾期提醒' }
 ];
 

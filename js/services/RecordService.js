@@ -54,23 +54,22 @@ export class RecordService {
         this.store.update('records', records => records.filter(r => r.id !== id));
     }
 
-    generateSampleRecords(members) {
+    generateSampleRecords(members, taskTypeService) {
         const records = [];
         const now = Date.now();
+        const enabledTypes = taskTypeService ? taskTypeService.getEnabled() : [];
+        if (enabledTypes.length === 0) return records;
         members.forEach((member, i) => {
-            records.push({
-                id: generateId(),
-                memberId: member.id,
-                type: 'trash',
-                date: now - 86400000 * (i + 1),
-                note: ''
-            });
-            records.push({
-                id: generateId(),
-                memberId: member.id,
-                type: 'paper',
-                date: now - 86400000 * (i + 2),
-                note: ''
+            enabledTypes.forEach((type, j) => {
+                if (j < 2) {
+                    records.push({
+                        id: generateId(),
+                        memberId: member.id,
+                        type: type.id,
+                        date: now - 86400000 * (i + j + 1),
+                        note: ''
+                    });
+                }
             });
         });
         return records;
