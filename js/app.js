@@ -5,6 +5,7 @@ import { ScheduleService } from './services/ScheduleService.js';
 import { ReminderService } from './services/ReminderService.js';
 import { BillService } from './services/BillService.js';
 import { InventoryService } from './services/InventoryService.js';
+import { MessageService } from './services/MessageService.js';
 import { Modal } from './components/Modal.js';
 import { Toast } from './components/Toast.js';
 import { TabNav } from './components/TabNav.js';
@@ -15,6 +16,7 @@ import { ScheduleModule } from './modules/ScheduleModule.js';
 import { InventoryModule } from './modules/InventoryModule.js';
 import { BillsModule } from './modules/BillsModule.js';
 import { RemindersModule } from './modules/RemindersModule.js';
+import { MessagesModule } from './modules/MessagesModule.js';
 import { getCurrentDateDisplay } from './utils/helpers.js';
 
 class App {
@@ -26,7 +28,8 @@ class App {
             bills: [],
             settlements: [],
             inventoryItems: [],
-            inventoryLogs: []
+            inventoryLogs: [],
+            messages: []
         });
 
         this.memberService = new MemberService(this.store);
@@ -35,6 +38,7 @@ class App {
         this.reminderService = new ReminderService(this.store);
         this.billService = new BillService(this.store);
         this.inventoryService = new InventoryService(this.store);
+        this.messageService = new MessageService(this.store);
 
         this.modal = new Modal();
         this.toast = new Toast();
@@ -59,6 +63,9 @@ class App {
         );
         this.remindersModule = new RemindersModule(
             this.store, this.memberService, this.reminderService
+        );
+        this.messagesModule = new MessagesModule(
+            this.store, this.memberService, this.messageService, this.modal, this.toast
         );
 
         this.billsModule.setOnBillSavedCallback((billId, inventoryItemId, inventoryQty) => {
@@ -100,6 +107,9 @@ class App {
 
             const inventoryLogs = this.inventoryService.generateSampleLogs(inventoryItems);
             this.store.set('inventoryLogs', inventoryLogs);
+
+            const messages = this.messageService.generateSampleMessages(members);
+            this.store.set('messages', messages);
         });
         this.store.persist();
     }
@@ -134,6 +144,9 @@ class App {
         });
         document.getElementById('addBillBtn').addEventListener('click', () => {
             this.billsModule.showAddModal();
+        });
+        document.getElementById('addMessageBtn').addEventListener('click', () => {
+            this.messagesModule.showAddModal();
         });
 
         document.getElementById('filterType').addEventListener('change', () => {
@@ -175,6 +188,7 @@ class App {
         this.scheduleModule.render();
         this.inventoryModule.render();
         this.billsModule.render();
+        this.messagesModule.render();
         this.remindersModule.render();
     }
 
@@ -220,6 +234,13 @@ class App {
             settleOneSettlement: (settlementId) => this.billsModule.settleOneSettlement(settlementId),
             settleAllSettlements: () => this.billsModule.settleAllSettlements(),
             viewBillEvidence: (billId) => this.billsModule.viewBillEvidence(billId),
+
+            saveMessage: () => this.messagesModule.saveMessage(),
+            deleteMessage: (messageId) => this.messagesModule.deleteMessage(messageId),
+            pinMessage: (messageId) => this.messagesModule.togglePin(messageId),
+            showReplyInput: (messageId) => this.messagesModule.showReplyInput(messageId),
+            hideReplyInput: (messageId) => this.messagesModule.hideReplyInput(messageId),
+            submitReply: (messageId) => this.messagesModule.submitReply(messageId),
             scrollToBill: (billId) => {
                 this.tabNav.switchTo('bills');
                 setTimeout(() => {
