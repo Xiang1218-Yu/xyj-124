@@ -23,6 +23,7 @@
             <button class="tab-btn" data-tab="members">👥 成员管理</button>
             <button class="tab-btn" data-tab="records">📝 事务记录</button>
             <button class="tab-btn" data-tab="schedule">📅 轮值排班</button>
+            <button class="tab-btn" data-tab="inventory">📦 物品库存</button>
             <button class="tab-btn" data-tab="bills">💰 账单管理</button>
             <button class="tab-btn" data-tab="reminders">⏰ 逾期提醒</button>
         </nav>
@@ -135,6 +136,56 @@
                     <div class="schedule-column">
                         <h3 class="schedule-type-header clean-header">🧹 公区卫生</h3>
                         <div id="scheduleClean" class="schedule-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="inventory" class="tab-content">
+                <div class="section-header">
+                    <h2>📦 物品库存</h2>
+                    <button class="btn btn-primary" id="addInventoryBtn">+ 添加物品</button>
+                </div>
+
+                <div id="lowStockAlert"></div>
+
+                <div class="stats-grid"></div>
+
+                <div class="inventory-content-grid">
+                    <div class="inventory-main">
+                        <div class="filter-bar">
+                            <input type="text" id="invSearch" class="filter-select" placeholder="🔍 搜索物品名称...">
+                            <select id="invFilterCategory" class="filter-select">
+                                <option value="all">全部分类</option>
+                            </select>
+                            <select id="invFilterStock" class="filter-select">
+                                <option value="all">全部状态</option>
+                                <option value="normal">库存正常</option>
+                                <option value="low">库存不足</option>
+                                <option value="empty">已缺货</option>
+                            </select>
+                        </div>
+                        <div id="inventoryItems" class="inventory-items-grid"></div>
+                    </div>
+
+                    <div class="inventory-sidebar">
+                        <div class="bill-sidebar-section">
+                            <div class="section-header" style="margin-bottom: 16px;">
+                                <h3 style="margin: 0;">📋 变动记录</h3>
+                            </div>
+                            <div class="filter-bar" style="margin-bottom: 16px;">
+                                <select id="invLogItemFilter" class="filter-select">
+                                    <option value="all">全部物品</option>
+                                </select>
+                                <select id="invLogTypeFilter" class="filter-select">
+                                    <option value="all">全部类型</option>
+                                    <option value="consume">消耗</option>
+                                    <option value="restock">补货</option>
+                                    <option value="purchase">购买</option>
+                                    <option value="adjust">调整</option>
+                                </select>
+                            </div>
+                            <div id="inventoryLogs" class="inv-logs-list"></div>
+                        </div>
                     </div>
                 </div>
             </section>

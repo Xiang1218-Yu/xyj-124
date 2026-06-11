@@ -4,6 +4,7 @@ import { RecordService } from './services/RecordService.js';
 import { ScheduleService } from './services/ScheduleService.js';
 import { ReminderService } from './services/ReminderService.js';
 import { BillService } from './services/BillService.js';
+import { InventoryService } from './services/InventoryService.js';
 import { Modal } from './components/Modal.js';
 import { Toast } from './components/Toast.js';
 import { TabNav } from './components/TabNav.js';
@@ -11,6 +12,7 @@ import { DashboardModule } from './modules/DashboardModule.js';
 import { MembersModule } from './modules/MembersModule.js';
 import { RecordsModule } from './modules/RecordsModule.js';
 import { ScheduleModule } from './modules/ScheduleModule.js';
+import { InventoryModule } from './modules/InventoryModule.js';
 import { BillsModule } from './modules/BillsModule.js';
 import { RemindersModule } from './modules/RemindersModule.js';
 import { getCurrentDateDisplay } from './utils/helpers.js';
@@ -22,7 +24,9 @@ class App {
             records: [],
             schedules: [],
             bills: [],
-            settlements: []
+            settlements: [],
+            inventoryItems: [],
+            inventoryLogs: []
         });
 
         this.memberService = new MemberService(this.store);
@@ -30,6 +34,7 @@ class App {
         this.scheduleService = new ScheduleService(this.store);
         this.reminderService = new ReminderService(this.store);
         this.billService = new BillService(this.store);
+        this.inventoryService = new InventoryService(this.store);
 
         this.modal = new Modal();
         this.toast = new Toast();
@@ -49,9 +54,16 @@ class App {
         this.billsModule = new BillsModule(
             this.store, this.memberService, this.billService, this.modal, this.toast
         );
+        this.inventoryModule = new InventoryModule(
+            this.store, this.inventoryService, this.memberService, this.billsModule, this.modal, this.toast
+        );
         this.remindersModule = new RemindersModule(
             this.store, this.memberService, this.reminderService
         );
+
+        this.billsModule.setOnBillSavedCallback((billId, inventoryItemId, inventoryQty) => {
+            this.inventoryModule.onBillSaved(billId, inventoryItemId, inventoryQty);
+        });
 
         this._setupStoreSubscriptions();
         this._exposeGlobalHandlers();
@@ -82,6 +94,12 @@ class App {
 
             const schedules = this.scheduleService.generateDefaultSchedules(members);
             this.store.set('schedules', schedules);
+
+            const inventoryItems = this.inventoryService.generateSampleItems();
+            this.store.set('inventoryItems', inventoryItems);
+
+            const inventoryLogs = this.inventoryService.generateSampleLogs(inventoryItems);
+            this.store.set('inventoryLogs', inventoryLogs);
         });
         this.store.persist();
     }
@@ -111,6 +129,9 @@ class App {
         document.getElementById('addScheduleBtn').addEventListener('click', () => {
             this.scheduleModule.showAddModal();
         });
+        document.getElementById('addInventoryBtn').addEventListener('click', () => {
+            this.inventoryModule.showAddModal();
+        });
         document.getElementById('addBillBtn').addEventListener('click', () => {
             this.billsModule.showAddModal();
         });
@@ -128,6 +149,23 @@ class App {
         document.getElementById('billFilterMember').addEventListener('change', () => {
             this.billsModule.renderBills();
         });
+
+        const invFilterCategory = document.getElementById('invFilterCategory');
+        const invFilterStock = document.getElementById('invFilterStock');
+        const invSearch = document.getElementById('invSearch');
+        const invLogItemFilter = document.getElementById('invLogItemFilter');
+        const invLogTypeFilter = document.getElementById('invLogTypeFilter');
+        if (invFilterCategory) invFilterCategory.addEventListener('change', () => this.inventoryModule.renderItems());
+        if (invFilterStock) invFilterStock.addEventListener('change', () => this.inventoryModule.renderItems());
+        if (invSearch) {
+            let timer;
+            invSearch.addEventListener('input', () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => this.inventoryModule.renderItems(), 200);
+            });
+        }
+        if (invLogItemFilter) invLogItemFilter.addEventListener('change', () => this.inventoryModule.renderLogs());
+        if (invLogTypeFilter) invLogTypeFilter.addEventListener('change', () => this.inventoryModule.renderLogs());
     }
 
     _renderAll() {
@@ -135,6 +173,7 @@ class App {
         this.membersModule.render();
         this.recordsModule.render();
         this.scheduleModule.render();
+        this.inventoryModule.render();
         this.billsModule.render();
         this.remindersModule.render();
     }
@@ -164,6 +203,15 @@ class App {
             },
             deleteSchedule: (scheduleId) => this.scheduleModule.deleteSchedule(scheduleId),
 
+            handleSaveInventoryItem: (event, itemId) => this.inventoryModule.saveItem(event, itemId),
+            editInventoryItem: (itemId) => this.inventoryModule.showEditModal(itemId),
+            deleteInventoryItem: (itemId) => this.inventoryModule.deleteItem(itemId),
+            showInventoryConsumeModal: (itemId) => this.inventoryModule.showConsumeModal(itemId),
+            showInventoryRestockModal: (itemId) => this.inventoryModule.showRestockModal(itemId),
+            showInventoryPurchaseModal: (itemId) => this.inventoryModule.showPurchaseModal(itemId),
+            showInventoryItemLogs: (itemId) => this.inventoryModule.showItemLogsModal(itemId),
+            handleInventoryAction: (event, itemId, action) => this.inventoryModule.handleAction(event, itemId, action),
+
             handleSaveBill: (event) => this.billsModule.saveBill(event),
             editBill: (billId) => this.billsModule.showEditModal(billId),
             deleteBill: (billId) => this.billsModule.deleteBill(billId),
@@ -172,6 +220,15 @@ class App {
             settleOneSettlement: (settlementId) => this.billsModule.settleOneSettlement(settlementId),
             settleAllSettlements: () => this.billsModule.settleAllSettlements(),
             viewBillEvidence: (billId) => this.billsModule.viewBillEvidence(billId),
+            scrollToBill: (billId) => {
+                this.tabNav.switchTo('bills');
+                setTimeout(() => {
+                    const billEl = document.querySelector(`.bill-item [onclick*="${billId}"]`);
+                    if (billEl) {
+                        billEl.closest('.bill-item')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
+            },
 
             closeModal: () => this.modal.close()
         };

@@ -23,11 +23,28 @@ export const BILL_CATEGORIES = {
     other: { name: '其他', emoji: '📋' }
 };
 
+export const INVENTORY_CATEGORIES = {
+    paper: { name: '纸品卫生', emoji: '🧻', billCategory: 'cleaning' },
+    cleaning: { name: '清洁用品', emoji: '🧹', billCategory: 'cleaning' },
+    grocery: { name: '日常消耗', emoji: '🛒', billCategory: 'grocery' },
+    kitchen: { name: '厨房用品', emoji: '🍳', billCategory: 'grocery' },
+    appliance: { name: '家电耗材', emoji: '🔌', billCategory: 'repair' },
+    other: { name: '其他物品', emoji: '📦', billCategory: 'other' }
+};
+
+export const INVENTORY_LOG_TYPES = {
+    consume: { name: '消耗', emoji: '➖', color: '#ef4444' },
+    restock: { name: '补货', emoji: '➕', color: '#10b981' },
+    adjust: { name: '调整', emoji: '🔄', color: '#6366f1' },
+    purchase: { name: '购买', emoji: '🛒', color: '#f59e0b' }
+};
+
 export const TAB_CONFIG = [
     { id: 'dashboard', label: '📊 概览' },
     { id: 'members', label: '👥 成员管理' },
     { id: 'records', label: '📝 事务记录' },
     { id: 'schedule', label: '📅 轮值排班' },
+    { id: 'inventory', label: '📦 物品库存' },
     { id: 'bills', label: '💰 账单管理' },
     { id: 'reminders', label: '⏰ 逾期提醒' }
 ];

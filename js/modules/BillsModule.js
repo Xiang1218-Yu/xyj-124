@@ -11,6 +11,11 @@ export class BillsModule {
         this.modal = modal;
         this.toast = toast;
         this._currentEvidenceBase64 = null;
+        this._onBillSavedCallback = null;
+    }
+
+    setOnBillSavedCallback(cb) {
+        this._onBillSavedCallback = cb;
     }
 
     render() {
@@ -162,15 +167,19 @@ export class BillsModule {
         }
     }
 
-    showAddModal() {
+    showAddModal(prefill = null) {
         const members = this.memberService.getAll();
         if (members.length === 0) {
             this.toast.show('请先添加成员');
             return;
         }
         this._currentEvidenceBase64 = null;
-        this.modal.open('添加账单', FormField.billForm(members));
+        this.modal.open('添加账单', FormField.billForm(members, null, prefill));
         this._bindFileUpload();
+    }
+
+    showAddModalWithPrefill(prefill) {
+        this.showAddModal(prefill);
     }
 
     showEditModal(billId) {
@@ -217,6 +226,9 @@ export class BillsModule {
         const note = document.getElementById('billNote').value.trim();
         const date = new Date(dateStr).getTime();
 
+        const inventoryItemId = document.getElementById('billInventoryPrefill')?.value || '';
+        const inventoryQty = document.getElementById('billInventoryQty')?.value || '';
+
         const sharedCheckboxes = document.querySelectorAll('input[name="billSharedBy"]:checked');
         const sharedBy = Array.from(sharedCheckboxes).map(cb => cb.value);
 
@@ -239,13 +251,20 @@ export class BillsModule {
             sharedBy
         };
 
+        let billId = editId;
         if (editId) {
             this.billService.update(editId, data);
             this.toast.show('账单已更新');
         } else {
-            this.billService.add(data);
+            const bill = this.billService.add(data);
+            billId = bill.id;
             this.toast.show('账单已添加');
         }
+
+        if (!editId && inventoryItemId && this._onBillSavedCallback) {
+            this._onBillSavedCallback(billId, inventoryItemId, inventoryQty);
+        }
+
         this.modal.close();
     }
 
