@@ -98,11 +98,17 @@
             <section id="schedule" class="tab-content">
                 <div class="section-header">
                     <h2>📅 轮值排班</h2>
-                    <button class="btn btn-primary" id="addScheduleBtn">+ 新建排班</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary" id="addScheduleBtn">+ 新建排班</button>
+                    </div>
                 </div>
+
+                <div id="scheduleActionBar" style="margin-bottom: 20px;"></div>
 
                 <div class="schedule-grid" id="scheduleGrid">
                 </div>
+
+                <div id="scheduleRulesContainer" style="display: none;"></div>
             </section>
 
             <section id="inventory" class="tab-content">

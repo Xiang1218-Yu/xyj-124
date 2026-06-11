@@ -29,6 +29,7 @@ class App {
             members: [],
             records: [],
             schedules: [],
+            scheduleRules: [],
             bills: [],
             settlements: [],
             inventoryItems: [],
@@ -252,6 +253,22 @@ class App {
                 this.scheduleModule.markDone(scheduleId);
             },
             deleteSchedule: (scheduleId) => this.scheduleModule.deleteSchedule(scheduleId),
+
+            switchScheduleView: (mode) => this.scheduleModule.switchView(mode),
+            showAddRuleModal: () => this.scheduleModule.showAddRuleModal(),
+            showEditRuleModal: (ruleId) => this.scheduleModule.showEditRuleModal(ruleId),
+            handleSaveScheduleRule: (event, ruleId) => this.scheduleModule.saveScheduleRule(event, ruleId),
+            toggleRuleEnabled: (ruleId) => this.scheduleModule.toggleRuleEnabled(ruleId),
+            deleteScheduleRule: (ruleId) => this.scheduleModule.deleteScheduleRule(ruleId),
+            toggleRuleTypeFields: () => this.scheduleModule.toggleRuleTypeFields(),
+
+            showBatchGenerateModal: () => this.scheduleModule.showBatchGenerateModal(),
+            handleBatchGenerate: (event) => this.scheduleModule.handleBatchGenerate(event),
+
+            showSwapModal: (scheduleId) => this.scheduleModule.showSwapModal(scheduleId),
+            handleScheduleSwap: (event, scheduleId) => this.scheduleModule.handleScheduleSwap(event, scheduleId),
+            showSubstituteModal: (scheduleId) => this.scheduleModule.showSubstituteModal(scheduleId),
+            handleScheduleSubstitute: (event, scheduleId) => this.scheduleModule.handleScheduleSubstitute(event, scheduleId),
 
             handleSaveInventoryItem: (event, itemId) => this.inventoryModule.saveItem(event, itemId),
             editInventoryItem: (itemId) => this.inventoryModule.showEditModal(itemId),
