@@ -1,20 +1,25 @@
-import { TASK_TYPES } from '../utils/constants.js';
 import { formatDateTime } from '../utils/helpers.js';
 import { EmptyState } from '../components/EmptyState.js';
 import { FormField } from '../components/FormField.js';
 
 export class RecordsModule {
-    constructor(store, memberService, recordService, modal, toast) {
+    constructor(store, memberService, recordService, taskTypeService, modal, toast) {
         this.store = store;
         this.memberService = memberService;
         this.recordService = recordService;
+        this.taskTypeService = taskTypeService;
         this.modal = modal;
         this.toast = toast;
     }
 
     render() {
         this.renderRecords();
+        this.updateTypeFilter();
         this.updateMemberFilter();
+    }
+
+    _getTaskTypes() {
+        return this.taskTypeService.getAllAsObject();
     }
 
     renderRecords() {
@@ -22,6 +27,7 @@ export class RecordsModule {
         const filterType = document.getElementById('filterType').value;
         const filterMember = document.getElementById('filterMember').value;
         const filtered = this.recordService.getFiltered(filterType, filterMember);
+        const taskTypes = this._getTaskTypes();
 
         if (filtered.length === 0) {
             container.innerHTML = EmptyState.render('暂无记录');
@@ -30,7 +36,8 @@ export class RecordsModule {
 
         container.innerHTML = filtered.map(record => {
             const member = this.memberService.getById(record.memberId);
-            const type = TASK_TYPES[record.type];
+            const type = taskTypes[record.type];
+            if (!type) return '';
             return `
                 <div class="record-item">
                     <div class="record-info">
@@ -44,6 +51,17 @@ export class RecordsModule {
                 </div>
             `;
         }).join('');
+    }
+
+    updateTypeFilter() {
+        const select = document.getElementById('filterType');
+        const currentValue = select.value;
+        const taskTypes = this._getTaskTypes();
+        const enabledTypes = Object.entries(taskTypes).filter(([, v]) => v.enabled !== false);
+        
+        select.innerHTML = '<option value="all">全部类型</option>' +
+            enabledTypes.map(([key, val]) => `<option value="${key}">${val.emoji} ${val.name}</option>`).join('');
+        select.value = currentValue || 'all';
     }
 
     updateMemberFilter() {
@@ -61,8 +79,9 @@ export class RecordsModule {
             this.toast.show('请先添加成员');
             return;
         }
+        const taskTypes = this._getTaskTypes();
         const title = type ? '快速记录' : '添加记录';
-        this.modal.open(title, FormField.recordForm(members, type));
+        this.modal.open(title, FormField.recordForm(members, type, taskTypes));
     }
 
     saveRecord(event) {

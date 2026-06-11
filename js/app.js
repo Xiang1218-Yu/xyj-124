@@ -7,6 +7,7 @@ import { BillService } from './services/BillService.js';
 import { InventoryService } from './services/InventoryService.js';
 import { MessageService } from './services/MessageService.js';
 import { VoteService } from './services/VoteService.js';
+import { TaskTypeService } from './services/TaskTypeService.js';
 import { Modal } from './components/Modal.js';
 import { Toast } from './components/Toast.js';
 import { TabNav } from './components/TabNav.js';
@@ -19,6 +20,7 @@ import { BillsModule } from './modules/BillsModule.js';
 import { RemindersModule } from './modules/RemindersModule.js';
 import { MessagesModule } from './modules/MessagesModule.js';
 import { VotesModule } from './modules/VotesModule.js';
+import { TaskTypesModule } from './modules/TaskTypesModule.js';
 import { getCurrentDateDisplay } from './utils/helpers.js';
 
 class App {
@@ -32,9 +34,11 @@ class App {
             inventoryItems: [],
             inventoryLogs: [],
             messages: [],
-            votes: []
+            votes: [],
+            taskTypes: null
         });
 
+        this.taskTypeService = new TaskTypeService(this.store);
         this.memberService = new MemberService(this.store);
         this.recordService = new RecordService(this.store);
         this.scheduleService = new ScheduleService(this.store);
@@ -48,16 +52,16 @@ class App {
         this.toast = new Toast();
 
         this.dashboardModule = new DashboardModule(
-            this.store, this.memberService, this.recordService, this.scheduleService, this.billService
+            this.store, this.memberService, this.recordService, this.scheduleService, this.billService, this.taskTypeService
         );
         this.membersModule = new MembersModule(
-            this.store, this.memberService, this.modal, this.toast
+            this.store, this.memberService, this.taskTypeService, this.modal, this.toast
         );
         this.recordsModule = new RecordsModule(
-            this.store, this.memberService, this.recordService, this.modal, this.toast
+            this.store, this.memberService, this.recordService, this.taskTypeService, this.modal, this.toast
         );
         this.scheduleModule = new ScheduleModule(
-            this.store, this.memberService, this.scheduleService, this.recordService, this.modal, this.toast
+            this.store, this.memberService, this.scheduleService, this.recordService, this.taskTypeService, this.modal, this.toast
         );
         this.billsModule = new BillsModule(
             this.store, this.memberService, this.billService, this.modal, this.toast
@@ -66,13 +70,16 @@ class App {
             this.store, this.inventoryService, this.memberService, this.billsModule, this.modal, this.toast
         );
         this.remindersModule = new RemindersModule(
-            this.store, this.memberService, this.reminderService
+            this.store, this.memberService, this.reminderService, this.taskTypeService
         );
         this.messagesModule = new MessagesModule(
             this.store, this.memberService, this.messageService, this.modal, this.toast
         );
         this.votesModule = new VotesModule(
             this.store, this.memberService, this.voteService, this.modal, this.toast
+        );
+        this.taskTypesModule = new TaskTypesModule(
+            this.store, this.taskTypeService, this.modal, this.toast
         );
 
         this.billsModule.setOnBillSavedCallback((billId, inventoryItemId, inventoryQty) => {
@@ -100,13 +107,15 @@ class App {
 
     _initSampleData() {
         this.store.batch(() => {
+            this.taskTypeService.getAll();
+
             const members = this.memberService.generateSampleMembers();
             this.store.set('members', members);
 
             const records = this.recordService.generateSampleRecords(members);
             this.store.set('records', records);
 
-            const schedules = this.scheduleService.generateDefaultSchedules(members);
+            const schedules = this.scheduleService.generateDefaultSchedules(members, this.taskTypeService);
             this.store.set('schedules', schedules);
 
             const inventoryItems = this.inventoryService.generateSampleItems();
@@ -162,6 +171,10 @@ class App {
         if (addVoteBtn) addVoteBtn.addEventListener('click', () => {
             this.votesModule.showAddModal();
         });
+        const addTaskTypeBtn = document.getElementById('addTaskTypeBtn');
+        if (addTaskTypeBtn) addTaskTypeBtn.addEventListener('click', () => {
+            this.taskTypesModule.showAddModal();
+        });
 
         document.getElementById('filterType').addEventListener('change', () => {
             this.recordsModule.renderRecords();
@@ -205,6 +218,7 @@ class App {
         this.votesModule.render();
         this.messagesModule.render();
         this.remindersModule.render();
+        this.taskTypesModule.render();
     }
 
     _startReminderCheck() {
@@ -219,6 +233,13 @@ class App {
             handleSaveMember: (event, memberId) => this.membersModule.saveMember(event, memberId),
             editMember: (memberId) => this.membersModule.showEditModal(memberId),
             deleteMember: (memberId) => this.membersModule.deleteMember(memberId),
+
+            handleSaveTaskType: (event, typeId) => this.taskTypesModule.save(event, typeId),
+            editTaskType: (typeId) => this.taskTypesModule.showEditModal(typeId),
+            deleteTaskType: (typeId) => this.taskTypesModule.delete(typeId),
+            toggleTaskType: (typeId) => this.taskTypesModule.toggleEnabled(typeId),
+            moveTaskTypeUp: (typeId) => this.taskTypesModule.moveUp(typeId),
+            moveTaskTypeDown: (typeId) => this.taskTypesModule.moveDown(typeId),
 
             handleSaveRecord: (event) => {
                 this.recordsModule.saveRecord(event);

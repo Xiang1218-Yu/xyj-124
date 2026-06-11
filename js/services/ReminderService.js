@@ -1,4 +1,3 @@
-import { TASK_TYPES } from '../utils/constants.js';
 import { getDaysDiff, formatDate } from '../utils/helpers.js';
 
 export class ReminderService {
@@ -6,7 +5,7 @@ export class ReminderService {
         this.store = store;
     }
 
-    getAll() {
+    getAll(taskTypeService) {
         const now = Date.now();
         const reminders = [];
 
@@ -19,18 +18,19 @@ export class ReminderService {
             }
         });
 
-        Object.keys(TASK_TYPES).forEach(type => {
+        const enabledTypes = taskTypeService.getEnabled();
+        enabledTypes.forEach(type => {
             const lastRecord = this.store.get('records')
-                .filter(r => r.type === type)
+                .filter(r => r.type === type.id)
                 .sort((a, b) => b.date - a.date)[0];
 
             if (lastRecord) {
                 const daysSinceLast = Math.floor((now - lastRecord.date) / (1000 * 60 * 60 * 24));
-                const interval = TASK_TYPES[type].defaultInterval;
+                const interval = type.defaultInterval || 3;
                 if (daysSinceLast >= interval) {
                     reminders.push({
-                        id: 'auto_' + type,
-                        type: type,
+                        id: 'auto_' + type.id,
+                        type: type.id,
                         auto: true,
                         daysSinceLast,
                         lastMemberId: lastRecord.memberId,
@@ -39,8 +39,8 @@ export class ReminderService {
                 }
             } else {
                 reminders.push({
-                    id: 'auto_' + type,
-                    type: type,
+                    id: 'auto_' + type.id,
+                    type: type.id,
                     auto: true,
                     neverDone: true
                 });

@@ -1,28 +1,55 @@
-import { TASK_TYPES } from '../utils/constants.js';
 import { getDaysDiff, formatDate } from '../utils/helpers.js';
 import { EmptyState } from '../components/EmptyState.js';
 import { Avatar } from '../components/Avatar.js';
 import { FormField } from '../components/FormField.js';
 
 export class ScheduleModule {
-    constructor(store, memberService, scheduleService, recordService, modal, toast) {
+    constructor(store, memberService, scheduleService, recordService, taskTypeService, modal, toast) {
         this.store = store;
         this.memberService = memberService;
         this.scheduleService = scheduleService;
         this.recordService = recordService;
+        this.taskTypeService = taskTypeService;
         this.modal = modal;
         this.toast = toast;
     }
 
+    _lightenColor(hex) {
+        const alpha = 0.2;
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
     render() {
-        Object.keys(TASK_TYPES).forEach(type => {
-            this.renderScheduleColumn(type);
+        const enabledTypes = this.taskTypeService.getEnabled();
+        const grid = document.getElementById('scheduleGrid');
+
+        if (enabledTypes.length === 0) {
+            grid.innerHTML = EmptyState.render('请先在「任务配置」中启用任务类型');
+            return;
+        }
+
+        grid.innerHTML = enabledTypes.map(type => `
+            <div class="schedule-column">
+                <h3 class="schedule-type-header" style="background: ${this._lightenColor(type.color)};">
+                    ${type.emoji} ${type.name}
+                </h3>
+                <div id="schedule-${type.id}" class="schedule-list"></div>
+            </div>
+        `).join('');
+
+        enabledTypes.forEach(type => {
+            this.renderScheduleColumn(type.id);
         });
     }
 
-    renderScheduleColumn(type) {
-        const container = document.getElementById('schedule' + type.charAt(0).toUpperCase() + type.slice(1));
-        const schedules = this.scheduleService.getByType(type);
+    renderScheduleColumn(typeId) {
+        const container = document.getElementById(`schedule-${typeId}`);
+        if (!container) return;
+
+        const schedules = this.scheduleService.getByType(typeId);
 
         if (schedules.length === 0) {
             container.innerHTML = EmptyState.render('暂无排班');
@@ -83,7 +110,8 @@ export class ScheduleModule {
             this.toast.show('请先添加成员');
             return;
         }
-        this.modal.open('新建排班', FormField.scheduleForm(members));
+        const taskTypes = this.taskTypeService.getAllAsObject();
+        this.modal.open('新建排班', FormField.scheduleForm(members, taskTypes));
     }
 
     saveSchedule(event) {
@@ -99,7 +127,7 @@ export class ScheduleModule {
     }
 
     markDone(scheduleId) {
-        this.scheduleService.markDone(scheduleId, this.recordService);
+        this.scheduleService.markDone(scheduleId, this.recordService, this.taskTypeService);
         this.toast.show('已标记完成');
     }
 

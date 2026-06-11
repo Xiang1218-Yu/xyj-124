@@ -1,8 +1,8 @@
 export class StatCard {
-    static render(iconClass, emoji, title, value, label) {
+    static render(iconClass, emoji, title, value, label, iconStyle = '') {
         return `
             <div class="stat-card">
-                <div class="stat-icon ${iconClass}">${emoji}</div>
+                <div class="stat-icon ${iconClass}" style="${iconStyle}">${emoji}</div>
                 <div class="stat-info">
                     <h3>${title}</h3>
                     <p class="stat-value">${value}</p>

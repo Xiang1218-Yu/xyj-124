@@ -2783,3 +2783,146 @@ body {
         text-align: center;
     }
 }
+
+.task-types-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.task-type-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s ease;
+    cursor: grab;
+}
+
+.task-type-card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.task-type-card.dragging {
+    opacity: 0.4;
+    cursor: grabbing;
+}
+
+.task-type-card.drag-over-top {
+    border-top: 3px solid var(--primary) !important;
+    padding-top: 13px;
+}
+
+.task-type-card.drag-over-bottom {
+    border-bottom: 3px solid var(--primary) !important;
+    padding-bottom: 13px;
+}
+
+.task-type-drag-handle {
+    font-size: 18px;
+    color: var(--text-muted);
+    cursor: grab;
+    user-select: none;
+    flex-shrink: 0;
+    padding: 4px;
+    line-height: 1;
+}
+
+.task-type-drag-handle:hover {
+    color: var(--text-primary);
+}
+
+.task-type-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.task-type-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.task-type-emoji {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.task-type-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.task-type-info h4 {
+    font-size: 16px;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+    font-weight: 600;
+}
+
+.task-type-info p {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.task-type-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.task-type-badge.badge-enabled {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.task-type-badge.badge-disabled {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.task-type-actions {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.task-type-actions .btn-icon {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.task-type-actions .btn-icon[disabled] {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .task-type-card {
+        flex-wrap: wrap;
+        padding: 14px;
+    }
+
+    .task-type-actions {
+        width: 100%;
+        justify-content: flex-end;
+        padding-top: 8px;
+        border-top: 1px solid var(--border);
+        margin-top: 4px;
+    }
+}

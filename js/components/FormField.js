@@ -1,4 +1,4 @@
-import { TASK_TYPES, AVATAR_COLORS, BILL_CATEGORIES, INVENTORY_CATEGORIES } from '../utils/constants.js';
+import { AVATAR_COLORS, BILL_CATEGORIES, INVENTORY_CATEGORIES, TASK_COLORS } from '../utils/constants.js';
 import { getTodayStr } from '../utils/helpers.js';
 
 export class FormField {
@@ -58,13 +58,49 @@ export class FormField {
         `;
     }
 
-    static typeSelect(id, selectedType) {
-        const options = Object.entries(TASK_TYPES).map(([key, val]) => ({
+    static typeSelect(id, selectedType, taskTypes) {
+        const options = Object.entries(taskTypes).map(([key, val]) => ({
             value: key,
             label: `${val.emoji} ${val.name}`,
             selected: key === selectedType
         }));
         return FormField.select(id, '任务类型', options, { required: true });
+    }
+
+    static taskColorPicker(selectedColor) {
+        return `
+            <div class="form-group">
+                <label>标签颜色</label>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    ${TASK_COLORS.map(color => `
+                        <label style="cursor: pointer;">
+                            <input type="radio" name="taskTypeColor" value="${color}" ${selectedColor === color ? 'checked' : ''} style="display: none;">
+                            <div style="width: 36px; height: 36px; border-radius: 50%; background: ${color}; border: 3px solid ${selectedColor === color ? 'var(--text-primary)' : 'transparent'}; transition: all 0.2s;"
+                                onclick="this.previousElementSibling.checked = true; document.querySelectorAll('input[name=taskTypeColor]').forEach(r => { r.nextElementSibling.style.borderColor = r.checked ? 'var(--text-primary)' : 'transparent'; });"></div>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    static taskTypeForm(taskType = null) {
+        return `
+            <form onsubmit="window._app.handleSaveTaskType(event, '${taskType ? taskType.id : ''}')">
+                ${FormField.text('taskTypeName', '任务名称', { required: true, placeholder: '如：倒垃圾', value: taskType ? taskType.name : '', maxlength: 20 })}
+                ${FormField.text('taskTypeEmoji', '图标（Emoji）', { placeholder: '如：🗑️', value: taskType ? taskType.emoji : '', maxlength: 4 })}
+                ${FormField.taskColorPicker(taskType ? taskType.color : '')}
+                <div class="form-group">
+                    <label>默认周期（天）</label>
+                    <input type="number" id="taskTypeInterval" required min="1" step="1" placeholder="自动提醒间隔天数" value="${taskType ? taskType.defaultInterval : 3}">
+                    <p class="form-hint">用于逾期提醒和自动轮班的间隔周期</p>
+                </div>
+                ${FormField.actions(
+                    '<button type="button" class="btn btn-secondary" onclick="window._app.closeModal()">取消</button>',
+                    `<button type="submit" class="btn btn-primary">${taskType ? '保存' : '添加'}</button>`
+                )}
+            </form>
+        `;
     }
 
     static memberSelect(id, members) {
@@ -92,11 +128,15 @@ export class FormField {
         `;
     }
 
-    static recordForm(members, type) {
+    static recordForm(members, type, taskTypes) {
         const today = getTodayStr();
+        const enabledTaskTypes = Object.fromEntries(
+            Object.entries(taskTypes).filter(([, v]) => v.enabled !== false)
+        );
+        const firstKey = Object.keys(enabledTaskTypes)[0] || 'trash';
         return `
             <form onsubmit="window._app.handleSaveRecord(event)">
-                ${FormField.typeSelect('recordType', type || 'trash')}
+                ${FormField.typeSelect('recordType', type || firstKey, enabledTaskTypes)}
                 ${FormField.memberSelect('recordMember', members)}
                 ${FormField.date('recordDate', '完成日期', { required: true, value: today })}
                 ${FormField.textarea('recordNote', '备注（可选）', { placeholder: '补充说明...' })}
@@ -123,11 +163,15 @@ export class FormField {
         `;
     }
 
-    static scheduleForm(members) {
+    static scheduleForm(members, taskTypes) {
         const today = getTodayStr();
+        const enabledTaskTypes = Object.fromEntries(
+            Object.entries(taskTypes).filter(([, v]) => v.enabled !== false)
+        );
+        const firstKey = Object.keys(enabledTaskTypes)[0] || 'trash';
         return `
             <form onsubmit="window._app.handleSaveSchedule(event)">
-                ${FormField.typeSelect('scheduleType', 'trash')}
+                ${FormField.typeSelect('scheduleType', firstKey, enabledTaskTypes)}
                 ${FormField.memberSelect('scheduleMember', members)}
                 ${FormField.date('scheduleDate', '排定日期', { required: true, min: today, value: today })}
                 ${FormField.actions(

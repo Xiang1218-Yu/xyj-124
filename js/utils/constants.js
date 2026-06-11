@@ -1,8 +1,14 @@
-export const TASK_TYPES = {
+export const DEFAULT_TASK_TYPES = {
     trash: { name: '倒垃圾', emoji: '🗑️', defaultInterval: 2 },
     paper: { name: '续厕纸', emoji: '🧻', defaultInterval: 3 },
     clean: { name: '公区卫生', emoji: '🧹', defaultInterval: 7 }
 };
+
+export const TASK_COLORS = [
+    '#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6',
+    '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#14b8a6',
+    '#6366f1', '#1e293b'
+];
 
 export const AVATAR_COLORS = [
     '#6366f1', '#ec4899', '#10b981', '#f59e0b', '#ef4444',

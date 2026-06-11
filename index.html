@@ -21,6 +21,7 @@
         <nav class="tabs">
             <button class="tab-btn active" data-tab="dashboard">📊 概览</button>
             <button class="tab-btn" data-tab="members">👥 成员管理</button>
+            <button class="tab-btn" data-tab="tasktypes">⚙️ 任务配置</button>
             <button class="tab-btn" data-tab="records">📝 事务记录</button>
             <button class="tab-btn" data-tab="schedule">📅 轮值排班</button>
             <button class="tab-btn" data-tab="inventory">📦 物品库存</button>
@@ -32,39 +33,7 @@
 
         <main class="main-content">
             <section id="dashboard" class="tab-content active">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon trash-icon">🗑️</div>
-                        <div class="stat-info">
-                            <h3>倒垃圾</h3>
-                            <p class="stat-value" id="trashCount">0</p>
-                            <p class="stat-label">本月完成次数</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon paper-icon">🧻</div>
-                        <div class="stat-info">
-                            <h3>续厕纸</h3>
-                            <p class="stat-value" id="paperCount">0</p>
-                            <p class="stat-label">本月完成次数</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon clean-icon">🧹</div>
-                        <div class="stat-info">
-                            <h3>公区卫生</h3>
-                            <p class="stat-value" id="cleanCount">0</p>
-                            <p class="stat-label">本月完成次数</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon member-icon">👥</div>
-                        <div class="stat-info">
-                            <h3>合租成员</h3>
-                            <p class="stat-value" id="memberCount">0</p>
-                            <p class="stat-label">当前人数</p>
-                        </div>
-                    </div>
+                <div class="stats-grid" id="dashboardStatsGrid">
                 </div>
 
                 <div class="dashboard-section">
@@ -107,9 +76,6 @@
                 <div class="filter-bar">
                     <select id="filterType" class="filter-select">
                         <option value="all">全部类型</option>
-                        <option value="trash">倒垃圾</option>
-                        <option value="paper">续厕纸</option>
-                        <option value="clean">公区卫生</option>
                     </select>
                     <select id="filterMember" class="filter-select">
                         <option value="all">全部成员</option>
@@ -120,25 +86,22 @@
                 </div>
             </section>
 
+            <section id="tasktypes" class="tab-content">
+                <div class="section-header">
+                    <h2>⚙️ 任务类型配置</h2>
+                    <button class="btn btn-primary" id="addTaskTypeBtn">+ 添加任务类型</button>
+                </div>
+                <div id="taskTypesConfig">
+                </div>
+            </section>
+
             <section id="schedule" class="tab-content">
                 <div class="section-header">
                     <h2>📅 轮值排班</h2>
                     <button class="btn btn-primary" id="addScheduleBtn">+ 新建排班</button>
                 </div>
 
-                <div class="schedule-grid">
-                    <div class="schedule-column">
-                        <h3 class="schedule-type-header trash-header">🗑️ 倒垃圾</h3>
-                        <div id="scheduleTrash" class="schedule-list"></div>
-                    </div>
-                    <div class="schedule-column">
-                        <h3 class="schedule-type-header paper-header">🧻 续厕纸</h3>
-                        <div id="schedulePaper" class="schedule-list"></div>
-                    </div>
-                    <div class="schedule-column">
-                        <h3 class="schedule-type-header clean-header">🧹 公区卫生</h3>
-                        <div id="scheduleClean" class="schedule-list"></div>
-                    </div>
+                <div class="schedule-grid" id="scheduleGrid">
                 </div>
             </section>
 

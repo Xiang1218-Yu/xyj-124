@@ -1,5 +1,4 @@
 import { generateId } from '../utils/helpers.js';
-import { TASK_TYPES } from '../utils/constants.js';
 
 export class ScheduleService {
     constructor(store) {
@@ -38,7 +37,7 @@ export class ScheduleService {
         return schedule;
     }
 
-    markDone(id, recordService) {
+    markDone(id, recordService, taskTypeService) {
         const schedule = this.store.get('schedules').find(s => s.id === id);
         if (!schedule) return;
 
@@ -48,7 +47,7 @@ export class ScheduleService {
             );
 
             recordService.add(schedule.memberId, schedule.type, Date.now(), '（轮值完成）');
-            this.autoAdvance(schedule.type, schedule.memberId);
+            this.autoAdvance(schedule.type, schedule.memberId, taskTypeService);
         });
     }
 
@@ -56,9 +55,12 @@ export class ScheduleService {
         this.store.update('schedules', schedules => schedules.filter(s => s.id !== id));
     }
 
-    autoAdvance(type, lastMemberId) {
+    autoAdvance(type, lastMemberId, taskTypeService) {
         const schedules = this.store.get('schedules');
         const members = this.store.get('members');
+        const taskTypes = taskTypeService.getAllAsObject();
+        const taskType = taskTypes[type];
+        if (!taskType) return;
 
         const typeMemberIds = schedules
             .filter(s => s.type === type)
@@ -71,7 +73,7 @@ export class ScheduleService {
         const nextIndex = (currentIndex + 1) % pool.length;
         const nextMemberId = pool[nextIndex];
 
-        const interval = TASK_TYPES[type].defaultInterval;
+        const interval = taskType.defaultInterval || 3;
         const nextDate = new Date();
         nextDate.setDate(nextDate.getDate() + interval);
         nextDate.setHours(0, 0, 0, 0);
@@ -85,19 +87,21 @@ export class ScheduleService {
         }
     }
 
-    generateDefaultSchedules(members) {
+    generateDefaultSchedules(members, taskTypeService) {
         const schedules = [];
         const now = new Date();
         now.setHours(0, 0, 0, 0);
+        const taskTypes = taskTypeService ? taskTypeService.getEnabled() : [];
 
-        Object.keys(TASK_TYPES).forEach(type => {
+        taskTypes.forEach(type => {
             members.forEach((member, index) => {
                 const date = new Date(now);
-                date.setDate(date.getDate() + index * TASK_TYPES[type].defaultInterval);
+                const interval = type.defaultInterval || 3;
+                date.setDate(date.getDate() + index * interval);
                 schedules.push({
                     id: generateId(),
                     memberId: member.id,
-                    type: type,
+                    type: type.id,
                     date: date.getTime(),
                     completed: false,
                     completedDate: null

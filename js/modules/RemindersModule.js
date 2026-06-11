@@ -1,19 +1,22 @@
-import { TASK_TYPES } from '../utils/constants.js';
 import { formatDate } from '../utils/helpers.js';
 import { EmptyState } from '../components/EmptyState.js';
 
 export class RemindersModule {
-    constructor(store, memberService, reminderService) {
+    constructor(store, memberService, reminderService, taskTypeService) {
         this.store = store;
         this.memberService = memberService;
         this.reminderService = reminderService;
+        this.taskTypeService = taskTypeService;
     }
 
     render() {
         const container = document.getElementById('remindersList');
-        const reminders = this.reminderService.getAll();
+        const reminders = this.reminderService.getAll(this.taskTypeService);
+        const taskTypes = this.taskTypeService.getAllAsObject();
 
-        if (reminders.length === 0) {
+        const enabledReminders = reminders.filter(r => taskTypes[r.type] && taskTypes[r.type].enabled !== false);
+
+        if (enabledReminders.length === 0) {
             container.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px;">
                     <div style="font-size: 64px; margin-bottom: 16px;">✅</div>
@@ -24,8 +27,8 @@ export class RemindersModule {
             return;
         }
 
-        container.innerHTML = reminders.map(reminder => {
-            const type = TASK_TYPES[reminder.type];
+        container.innerHTML = enabledReminders.map(reminder => {
+            const type = taskTypes[reminder.type];
             const isWarning = reminder.daysDiff === 0 || reminder.daysDiff === 1;
 
             if (reminder.auto) {

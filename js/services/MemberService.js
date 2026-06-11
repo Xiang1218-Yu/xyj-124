@@ -46,12 +46,12 @@ export class MemberService {
 
     getMemberStats(memberId) {
         const records = this.store.get('records').filter(r => r.memberId === memberId);
-        return {
-            trash: records.filter(r => r.type === 'trash').length,
-            paper: records.filter(r => r.type === 'paper').length,
-            clean: records.filter(r => r.type === 'clean').length,
-            total: records.length
-        };
+        const taskTypes = this.store.get('taskTypes') || [];
+        const stats = { total: records.length };
+        taskTypes.forEach(tt => {
+            stats[tt.id] = records.filter(r => r.type === tt.id).length;
+        });
+        return stats;
     }
 
     generateSampleMembers() {

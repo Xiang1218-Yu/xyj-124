@@ -4,9 +4,10 @@ import { Avatar } from '../components/Avatar.js';
 import { FormField } from '../components/FormField.js';
 
 export class MembersModule {
-    constructor(store, memberService, modal, toast) {
+    constructor(store, memberService, taskTypeService, modal, toast) {
         this.store = store;
         this.memberService = memberService;
+        this.taskTypeService = taskTypeService;
         this.modal = modal;
         this.toast = toast;
     }
@@ -14,6 +15,7 @@ export class MembersModule {
     render() {
         const container = document.getElementById('membersList');
         const members = this.memberService.getAll();
+        const enabledTaskTypes = this.taskTypeService.getEnabled();
 
         if (members.length === 0) {
             container.innerHTML = EmptyState.render('暂无成员，点击上方按钮添加');
@@ -24,6 +26,13 @@ export class MembersModule {
             const stats = this.memberService.getMemberStats(member.id);
             const joinDate = formatDate(member.joinDate);
 
+            const typeStats = enabledTaskTypes.map(type => `
+                <div class="member-stat">
+                    <div class="member-stat-value">${stats[type.id] || 0}</div>
+                    <div class="member-stat-label">${type.name}</div>
+                </div>
+            `).join('');
+
             return `
                 <div class="member-card">
                     <div class="member-header">
@@ -33,19 +42,8 @@ export class MembersModule {
                             <p>入住：${joinDate}</p>
                         </div>
                     </div>
-                    <div class="member-stats">
-                        <div class="member-stat">
-                            <div class="member-stat-value">${stats.trash}</div>
-                            <div class="member-stat-label">倒垃圾</div>
-                        </div>
-                        <div class="member-stat">
-                            <div class="member-stat-value">${stats.paper}</div>
-                            <div class="member-stat-label">续厕纸</div>
-                        </div>
-                        <div class="member-stat">
-                            <div class="member-stat-value">${stats.clean}</div>
-                            <div class="member-stat-label">公区卫生</div>
-                        </div>
+                    <div class="member-stats" style="grid-template-columns: repeat(${Math.min(enabledTaskTypes.length, 4)}, 1fr);">
+                        ${typeStats}
                     </div>
                     <div class="member-actions">
                         <button class="btn btn-secondary btn-sm" onclick="window._app.editMember('${member.id}')">编辑</button>

@@ -1,16 +1,16 @@
-import { TASK_TYPES } from '../utils/constants.js';
 import { getMonthStart, getDaysDiff, formatDate, formatDateTime } from '../utils/helpers.js';
 import { StatCard } from '../components/StatCard.js';
 import { EmptyState } from '../components/EmptyState.js';
 import { Avatar } from '../components/Avatar.js';
 
 export class DashboardModule {
-    constructor(store, memberService, recordService, scheduleService, billService) {
+    constructor(store, memberService, recordService, scheduleService, billService, taskTypeService) {
         this.store = store;
         this.memberService = memberService;
         this.recordService = recordService;
         this.scheduleService = scheduleService;
         this.billService = billService;
+        this.taskTypeService = taskTypeService;
     }
 
     render() {
@@ -20,34 +20,61 @@ export class DashboardModule {
         this.renderRanking();
     }
 
+    _getTaskTypes() {
+        return this.taskTypeService.getEnabledAsObject();
+    }
+
+    _lightenColor(hex) {
+        const alpha = 0.15;
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
     renderStats() {
         const monthStart = getMonthStart();
         const monthRecords = this.recordService.getByMonth(monthStart);
         const members = this.memberService.getAll();
         const monthExpense = this.billService.getMonthTotal(monthStart);
+        const taskTypes = this._getTaskTypes();
 
-        const grid = document.querySelector('#dashboard .stats-grid');
-        grid.innerHTML = [
-            StatCard.render('trash-icon', '🗑️', '倒垃圾', monthRecords.filter(r => r.type === 'trash').length, '本月完成次数'),
-            StatCard.render('paper-icon', '🧻', '续厕纸', monthRecords.filter(r => r.type === 'paper').length, '本月完成次数'),
-            StatCard.render('clean-icon', '🧹', '公区卫生', monthRecords.filter(r => r.type === 'clean').length, '本月完成次数'),
-            StatCard.render('member-icon', '👥', '合租成员', members.length, '当前人数'),
-            StatCard.render('bill-icon', '💰', '本月支出', `¥${monthExpense.toFixed(0)}`, '本月账单总额')
-        ].join('');
+        const grid = document.querySelector('#dashboardStatsGrid');
+        const statCards = Object.entries(taskTypes).map(([typeId, type]) => {
+            const count = monthRecords.filter(r => r.type === typeId).length;
+            const iconStyle = type.color ? `background: ${this._lightenColor(type.color)};` : '';
+            return StatCard.render(`task-${typeId}`, type.emoji, type.name, count, '本月完成次数', iconStyle);
+        });
+
+        statCards.push(
+            StatCard.render('member-icon', '👥', '合租成员', members.length, '当前人数', 'background: #ede9fe;'),
+            StatCard.render('bill-icon', '💰', '本月支出', `¥${monthExpense.toFixed(0)}`, '本月账单总额', 'background: #fef3c7;')
+        );
+
+        grid.innerHTML = statCards.join('');
     }
 
     renderPendingTasks() {
         const container = document.getElementById('pendingTasks');
         const pending = this.scheduleService.getPending();
+        const taskTypes = this.taskTypeService.getAllAsObject();
 
         if (pending.length === 0) {
             container.innerHTML = EmptyState.render('暂无待处理事项 🎉');
             return;
         }
 
-        container.innerHTML = pending.slice(0, 5).map(task => {
+        const enabledPending = pending.filter(task => taskTypes[task.type] && taskTypes[task.type].enabled !== false);
+
+        if (enabledPending.length === 0) {
+            container.innerHTML = EmptyState.render('暂无待处理事项 🎉');
+            return;
+        }
+
+        container.innerHTML = enabledPending.slice(0, 5).map(task => {
             const member = this.memberService.getById(task.memberId);
-            const type = TASK_TYPES[task.type];
+            const type = taskTypes[task.type];
+            if (!type) return '';
             const isOverdue = task.daysDiff < 0;
             const timeText = isOverdue
                 ? `已逾期 ${Math.abs(task.daysDiff)} 天`
@@ -75,6 +102,7 @@ export class DashboardModule {
     renderRecentActivity() {
         const container = document.getElementById('recentActivity');
         const sorted = [...this.recordService.getAll()].sort((a, b) => b.date - a.date).slice(0, 8);
+        const taskTypes = this.taskTypeService.getAllAsObject();
 
         if (sorted.length === 0) {
             container.innerHTML = EmptyState.render('暂无记录');
@@ -83,7 +111,8 @@ export class DashboardModule {
 
         container.innerHTML = sorted.map(record => {
             const member = this.memberService.getById(record.memberId);
-            const type = TASK_TYPES[record.type];
+            const type = taskTypes[record.type];
+            if (!type) return '';
             return `
                 <div class="activity-item">
                     <span class="activity-emoji">${type.emoji}</span>
