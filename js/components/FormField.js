@@ -1,4 +1,4 @@
-import { TASK_TYPES, AVATAR_COLORS } from '../utils/constants.js';
+import { TASK_TYPES, AVATAR_COLORS, BILL_CATEGORIES } from '../utils/constants.js';
 import { getTodayStr } from '../utils/helpers.js';
 
 export class FormField {
@@ -133,6 +133,53 @@ export class FormField {
                 ${FormField.actions(
                     '<button type="button" class="btn btn-secondary" onclick="window._app.closeModal()">取消</button>',
                     '<button type="submit" class="btn btn-primary">添加</button>'
+                )}
+            </form>
+        `;
+    }
+
+    static billCategorySelect(id, selectedCategory) {
+        const options = Object.entries(BILL_CATEGORIES).map(([key, val]) => ({
+            value: key,
+            label: `${val.emoji} ${val.name}`,
+            selected: key === selectedCategory
+        }));
+        return FormField.select(id, '账单类别', options, { required: true });
+    }
+
+    static billForm(members, bill = null) {
+        const today = getTodayStr();
+        const dateValue = bill ? new Date(bill.date).toISOString().split('T')[0] : today;
+        const evidencePreview = bill && bill.evidence
+            ? `<div id="evidencePreview"><img src="${bill.evidence}" class="evidence-preview-img" alt="账单依据预览"></div>`
+            : '<div id="evidencePreview"></div>';
+
+        return `
+            <form onsubmit="window._app.handleSaveBill(event)">
+                <input type="hidden" id="billEditId" value="${bill ? bill.id : ''}">
+                ${FormField.billCategorySelect('billCategory', bill ? bill.category : 'rent')}
+                <div class="form-group">
+                    <label>金额（元）</label>
+                    <input type="number" id="billAmount" required min="0.01" step="0.01" placeholder="0.00" value="${bill ? bill.amount : ''}">
+                </div>
+                <div class="form-group">
+                    <label>付款人</label>
+                    <select id="billPayer" required>
+                        ${members.map(m => `<option value="${m.id}" ${bill && bill.payerId === m.id ? 'selected' : ''}>${m.name}</option>`).join('')}
+                    </select>
+                </div>
+                ${FormField.date('billDate', '账单日期', { required: true, value: dateValue })}
+                <div class="form-group">
+                    <label>账单依据</label>
+                    <input type="file" id="billEvidence" accept="image/*" class="file-input">
+                    <p class="form-hint">支持图片文件，最大5MB</p>
+                    ${evidencePreview}
+                </div>
+                ${FormField.textarea('billNote', '备注（可选）', { placeholder: '补充说明...' })}
+                ${bill && bill.note ? '' : ''}
+                ${FormField.actions(
+                    '<button type="button" class="btn btn-secondary" onclick="window._app.closeModal()">取消</button>',
+                    `<button type="submit" class="btn btn-primary">${bill ? '保存' : '添加'}</button>`
                 )}
             </form>
         `;

@@ -3,6 +3,7 @@ import { MemberService } from './services/MemberService.js';
 import { RecordService } from './services/RecordService.js';
 import { ScheduleService } from './services/ScheduleService.js';
 import { ReminderService } from './services/ReminderService.js';
+import { BillService } from './services/BillService.js';
 import { Modal } from './components/Modal.js';
 import { Toast } from './components/Toast.js';
 import { TabNav } from './components/TabNav.js';
@@ -10,6 +11,7 @@ import { DashboardModule } from './modules/DashboardModule.js';
 import { MembersModule } from './modules/MembersModule.js';
 import { RecordsModule } from './modules/RecordsModule.js';
 import { ScheduleModule } from './modules/ScheduleModule.js';
+import { BillsModule } from './modules/BillsModule.js';
 import { RemindersModule } from './modules/RemindersModule.js';
 import { getCurrentDateDisplay } from './utils/helpers.js';
 
@@ -18,19 +20,21 @@ class App {
         this.store = new Store({
             members: [],
             records: [],
-            schedules: []
+            schedules: [],
+            bills: []
         });
 
         this.memberService = new MemberService(this.store);
         this.recordService = new RecordService(this.store);
         this.scheduleService = new ScheduleService(this.store);
         this.reminderService = new ReminderService(this.store);
+        this.billService = new BillService(this.store);
 
         this.modal = new Modal();
         this.toast = new Toast();
 
         this.dashboardModule = new DashboardModule(
-            this.store, this.memberService, this.recordService, this.scheduleService
+            this.store, this.memberService, this.recordService, this.scheduleService, this.billService
         );
         this.membersModule = new MembersModule(
             this.store, this.memberService, this.modal, this.toast
@@ -40,6 +44,9 @@ class App {
         );
         this.scheduleModule = new ScheduleModule(
             this.store, this.memberService, this.scheduleService, this.recordService, this.modal, this.toast
+        );
+        this.billsModule = new BillsModule(
+            this.store, this.memberService, this.billService, this.modal, this.toast
         );
         this.remindersModule = new RemindersModule(
             this.store, this.memberService, this.reminderService
@@ -103,12 +110,22 @@ class App {
         document.getElementById('addScheduleBtn').addEventListener('click', () => {
             this.scheduleModule.showAddModal();
         });
+        document.getElementById('addBillBtn').addEventListener('click', () => {
+            this.billsModule.showAddModal();
+        });
 
         document.getElementById('filterType').addEventListener('change', () => {
             this.recordsModule.renderRecords();
         });
         document.getElementById('filterMember').addEventListener('change', () => {
             this.recordsModule.renderRecords();
+        });
+
+        document.getElementById('billFilterCategory').addEventListener('change', () => {
+            this.billsModule.renderBills();
+        });
+        document.getElementById('billFilterMember').addEventListener('change', () => {
+            this.billsModule.renderBills();
         });
     }
 
@@ -117,6 +134,7 @@ class App {
         this.membersModule.render();
         this.recordsModule.render();
         this.scheduleModule.render();
+        this.billsModule.render();
         this.remindersModule.render();
     }
 
@@ -144,6 +162,13 @@ class App {
                 this.scheduleModule.markDone(scheduleId);
             },
             deleteSchedule: (scheduleId) => this.scheduleModule.deleteSchedule(scheduleId),
+
+            handleSaveBill: (event) => this.billsModule.saveBill(event),
+            editBill: (billId) => this.billsModule.showEditModal(billId),
+            deleteBill: (billId) => this.billsModule.deleteBill(billId),
+            settleBill: (billId) => this.billsModule.settleBill(billId),
+            settleAllBills: () => this.billsModule.settleAllBills(),
+            viewBillEvidence: (billId) => this.billsModule.viewBillEvidence(billId),
 
             closeModal: () => this.modal.close()
         };

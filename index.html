@@ -23,6 +23,7 @@
             <button class="tab-btn" data-tab="members">👥 成员管理</button>
             <button class="tab-btn" data-tab="records">📝 事务记录</button>
             <button class="tab-btn" data-tab="schedule">📅 轮值排班</button>
+            <button class="tab-btn" data-tab="bills">💰 账单管理</button>
             <button class="tab-btn" data-tab="reminders">⏰ 逾期提醒</button>
         </nav>
 
@@ -134,6 +135,52 @@
                     <div class="schedule-column">
                         <h3 class="schedule-type-header clean-header">🧹 公区卫生</h3>
                         <div id="scheduleClean" class="schedule-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="bills" class="tab-content">
+                <div class="section-header">
+                    <h2>💰 账单管理</h2>
+                    <button class="btn btn-primary" id="addBillBtn">+ 添加账单</button>
+                </div>
+
+                <div class="bill-summary-grid">
+                    <div class="bill-summary-card">
+                        <h3>本月总支出</h3>
+                        <p class="bill-summary-value" id="billMonthTotal">¥0.00</p>
+                    </div>
+                    <div class="bill-summary-card">
+                        <h3>人均分摊</h3>
+                        <p class="bill-summary-value" id="billPerPerson">¥0.00</p>
+                    </div>
+                </div>
+
+                <div class="bill-content-grid">
+                    <div class="bill-main">
+                        <div class="filter-bar">
+                            <select id="billFilterCategory" class="filter-select">
+                                <option value="all">全部类别</option>
+                            </select>
+                            <select id="billFilterMember" class="filter-select">
+                                <option value="all">全部成员</option>
+                            </select>
+                        </div>
+                        <div id="billsList" class="bills-list"></div>
+                    </div>
+
+                    <div class="bill-sidebar">
+                        <div class="bill-sidebar-section">
+                            <h3>📊 支出分类</h3>
+                            <div id="billCategoryBreakdown"></div>
+                        </div>
+                        <div class="bill-sidebar-section">
+                            <div class="settlement-header">
+                                <h3>🤝 分摊结算</h3>
+                                <div id="settlementSummary"></div>
+                            </div>
+                            <div id="settlementList" class="settlement-list"></div>
+                        </div>
                     </div>
                 </div>
             </section>
