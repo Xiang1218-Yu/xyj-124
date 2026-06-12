@@ -250,6 +250,7 @@ export class ScheduleModule {
             grid.innerHTML = this.calendarMode === 'month'
                 ? this._renderMonthCalendar()
                 : this._renderWeekCalendar();
+            requestAnimationFrame(() => this._initCalendarDragDrop());
         } else {
             grid.style.display = 'none';
             if (filterBar) filterBar.style.display = 'none';
@@ -410,11 +411,14 @@ export class ScheduleModule {
                 const color = type ? type.color : '#94a3b8';
                 const completedClass = s.completed ? 'cal-event-completed' : '';
                 const overdueClass = !s.completed && dateTs < today ? 'cal-event-overdue' : '';
+                const draggableAttr = s.completed ? '' : 'draggable="true"';
                 return `
                     <div class="cal-event ${completedClass} ${overdueClass}"
+                         ${draggableAttr}
+                         data-schedule-id="${s.id}"
                          style="background: ${this._lightenColor(color)}; border-left: 3px solid ${color};"
                          onclick="window._app.calShowEvent('${s.id}')"
-                         title="${type ? type.name : '未知'} · ${member ? member.name : '未知'} · ${formatDate(s.date)}">
+                         title="${type ? type.name : '未知'} · ${member ? member.name : '未知'} · ${formatDate(s.date)}${s.completed ? '' : ' · 拖拽可改日期'}">
                         ${type ? type.emoji : '📌'} <span class="cal-event-text">${member ? member.name : '?'}</span>
                     </div>
                 `;
@@ -426,7 +430,7 @@ export class ScheduleModule {
                 : '';
 
             daysHtml += `
-                <div class="${cellClass}" onclick="window._app.calShowDay(${dateTs})">
+                <div class="${cellClass}" data-date="${dateTs}" onclick="window._app.calShowDay(${dateTs})">
                     <div class="cal-cell-header">
                         <span class="cal-day-number ${isToday ? 'cal-day-today' : ''}">${day}</span>
                         ${daySchedules.length > 0 ? `<span class="cal-count-dot">${daySchedules.length}</span>` : ''}
@@ -513,9 +517,12 @@ export class ScheduleModule {
                 const color = type ? type.color : '#94a3b8';
                 const completedClass = s.completed ? 'cal-event-completed' : '';
                 const overdueClass = !s.completed && dateTs < today ? 'cal-event-overdue' : '';
+                const draggableAttr = s.completed ? '' : 'draggable="true"';
 
                 return `
                     <div class="cal-week-event ${completedClass} ${overdueClass}"
+                         ${draggableAttr}
+                         data-schedule-id="${s.id}"
                          style="background: ${this._lightenColor(color)}; border-left: 4px solid ${color};"
                          onclick="window._app.calShowEvent('${s.id}')">
                         <div class="cal-week-event-title">
@@ -537,7 +544,7 @@ export class ScheduleModule {
             }).join('');
 
             return `
-                <div class="cal-week-day-col ${isToday ? 'col-today' : ''} ${isWeekend ? 'col-weekend' : ''}">
+                <div class="cal-week-day-col ${isToday ? 'col-today' : ''} ${isWeekend ? 'col-weekend' : ''}" data-date="${dateTs}">
                     <div class="cal-week-day-date" onclick="window._app.calShowDay(${dateTs})">
                         ${d.getMonth() + 1}/${d.getDate()} ${isToday ? '· 今天' : ''}
                     </div>
@@ -666,6 +673,147 @@ export class ScheduleModule {
         this.scheduleService.add(memberId, typeId, dateTs);
         this.modal.close();
         this.toast.show('排班已添加');
+    }
+
+    _initCalendarDragDrop() {
+        const container = document.getElementById('scheduleGrid');
+        if (!container) return;
+
+        let draggedScheduleId = null;
+        let draggedEl = null;
+        let ghostEl = null;
+        let lastDropTarget = null;
+
+        const dropTargets = () => container.querySelectorAll('[data-date]');
+
+        container.addEventListener('dragstart', (e) => {
+            const eventEl = e.target.closest('[data-schedule-id]');
+            if (!eventEl) return;
+
+            draggedScheduleId = eventEl.dataset.scheduleId;
+            draggedEl = eventEl;
+
+            const schedule = this.scheduleService.getById(draggedScheduleId);
+            if (!schedule || schedule.completed) {
+                e.preventDefault();
+                return;
+            }
+
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', draggedScheduleId);
+
+            eventEl.classList.add('cal-dragging');
+
+            ghostEl = eventEl.cloneNode(true);
+            ghostEl.classList.add('cal-drag-ghost');
+            ghostEl.style.position = 'fixed';
+            ghostEl.style.pointerEvents = 'none';
+            ghostEl.style.zIndex = '10000';
+            ghostEl.style.width = eventEl.offsetWidth + 'px';
+            ghostEl.style.opacity = '0.9';
+            ghostEl.style.transform = 'rotate(2deg)';
+            ghostEl.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+            document.body.appendChild(ghostEl);
+            positionGhost(e);
+
+            dropTargets().forEach(t => t.classList.add('cal-drop-target'));
+        });
+
+        const positionGhost = (e) => {
+            if (!ghostEl) return;
+            ghostEl.style.left = (e.clientX + 12) + 'px';
+            ghostEl.style.top = (e.clientY - 12) + 'px';
+        };
+
+        container.addEventListener('drag', (e) => {
+            if (e.clientX === 0 && e.clientY === 0) return;
+            positionGhost(e);
+        });
+
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            const target = e.target.closest('[data-date]');
+            if (lastDropTarget && lastDropTarget !== target) {
+                lastDropTarget.classList.remove('cal-drop-hover');
+            }
+            if (target) {
+                target.classList.add('cal-drop-hover');
+                lastDropTarget = target;
+            }
+        });
+
+        container.addEventListener('dragleave', (e) => {
+            const target = e.target.closest('[data-date]');
+            if (target && !target.contains(e.relatedTarget)) {
+                target.classList.remove('cal-drop-hover');
+            }
+        });
+
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+
+            if (ghostEl) {
+                ghostEl.remove();
+                ghostEl = null;
+            }
+
+            if (draggedEl) {
+                draggedEl.classList.remove('cal-dragging');
+            }
+
+            dropTargets().forEach(t => {
+                t.classList.remove('cal-drop-target');
+                t.classList.remove('cal-drop-hover');
+            });
+
+            const targetCell = e.target.closest('[data-date]');
+            if (!targetCell || !draggedScheduleId) return;
+
+            const newDateTs = parseInt(targetCell.dataset.date);
+            if (isNaN(newDateTs)) return;
+
+            const schedule = this.scheduleService.getById(draggedScheduleId);
+            if (!schedule) return;
+
+            if (isSameDay(schedule.date, newDateTs)) return;
+
+            const oldDateStr = formatDate(schedule.date);
+            const newDateStr = formatDate(newDateTs);
+
+            this.scheduleService.moveToDate(draggedScheduleId, newDateTs);
+
+            const member = this.memberService.getById(schedule.memberId);
+            const type = this.taskTypeService.getById(schedule.type);
+            const name = member ? member.name : '未知';
+            const typeName = type ? type.name : '未知';
+            this.toast.show(`✅ ${name} 的${typeName}已从 ${oldDateStr} 移至 ${newDateStr}`);
+
+            draggedScheduleId = null;
+            draggedEl = null;
+            lastDropTarget = null;
+        });
+
+        container.addEventListener('dragend', (e) => {
+            if (ghostEl) {
+                ghostEl.remove();
+                ghostEl = null;
+            }
+
+            if (draggedEl) {
+                draggedEl.classList.remove('cal-dragging');
+            }
+
+            dropTargets().forEach(t => {
+                t.classList.remove('cal-drop-target');
+                t.classList.remove('cal-drop-hover');
+            });
+
+            draggedScheduleId = null;
+            draggedEl = null;
+            lastDropTarget = null;
+        });
     }
 
     renderScheduleColumn(typeId) {

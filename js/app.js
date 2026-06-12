@@ -267,6 +267,7 @@ class App {
             calShowDay: (dateTs) => this.scheduleModule.showDayModal(dateTs),
             calShowEvent: (scheduleId) => this.scheduleModule.showEventModal(scheduleId),
             calQuickAdd: (event, dateTs) => this.scheduleModule.quickAddSchedule(event, dateTs),
+            calMoveToDate: (scheduleId, newDateTs) => this.scheduleService.moveToDate(scheduleId, newDateTs),
             showAddRuleModal: () => this.scheduleModule.showAddRuleModal(),
             showEditRuleModal: (ruleId) => this.scheduleModule.showEditRuleModal(ruleId),
             handleSaveScheduleRule: (event, ruleId) => this.scheduleModule.saveScheduleRule(event, ruleId),

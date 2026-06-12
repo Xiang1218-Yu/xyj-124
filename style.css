@@ -3670,6 +3670,64 @@ body {
     50% { filter: saturate(1.8) brightness(0.98); }
 }
 
+/* 拖拽相关样式 */
+.cal-event[draggable="true"] {
+    cursor: grab;
+}
+
+.cal-event[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.cal-dragging {
+    opacity: 0.3 !important;
+    transform: scale(0.95);
+    border: 2px dashed var(--primary) !important;
+    background: var(--primary-light) !important;
+}
+
+.cal-drag-ghost {
+    border-radius: 6px !important;
+    transition: none;
+}
+
+.cal-drop-target {
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cal-drop-target::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2px dashed rgba(99, 102, 241, 0.3);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.cal-cell.cal-drop-hover {
+    background: rgba(99, 102, 241, 0.08) !important;
+    box-shadow: inset 0 0 0 2px var(--primary);
+}
+
+.cal-cell.cal-drop-hover .cal-cell-header .cal-day-number {
+    background: var(--primary);
+    color: white;
+}
+
+.cal-week-day-col.cal-drop-hover {
+    background: rgba(99, 102, 241, 0.06) !important;
+    box-shadow: inset 0 0 0 2px var(--primary);
+}
+
+.cal-week-event[draggable="true"] {
+    cursor: grab;
+}
+
+.cal-week-event[draggable="true"]:active {
+    cursor: grabbing;
+}
+
 /* 周日历 */
 .cal-week-grid {
     display: grid;

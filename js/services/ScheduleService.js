@@ -75,6 +75,12 @@ export class ScheduleService {
         this.store.update('schedules', schedules => schedules.filter(s => s.id !== id));
     }
 
+    moveToDate(id, newDate) {
+        const schedule = this.getById(id);
+        if (!schedule) throw new Error('排班不存在');
+        this.update(id, { date: startOfDay(newDate) });
+    }
+
     autoAdvance(type, lastMemberId, taskTypeService) {
         const schedules = this.store.get('schedules');
         const members = this.store.get('members');
