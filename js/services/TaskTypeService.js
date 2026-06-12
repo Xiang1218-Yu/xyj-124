@@ -70,7 +70,7 @@ export class TaskTypeService {
         const newType = {
             id: generateId(),
             name: name.trim(),
-            emoji: emoji.trim() || '📋',
+            emoji: (emoji || '').trim() || '📋',
             color: color || TASK_COLORS[all.length % TASK_COLORS.length],
             defaultInterval: parseInt(defaultInterval) || 3,
             enabled: true,

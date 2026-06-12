@@ -51,12 +51,16 @@ export class Store {
     _flushNotifications() {
         const notifications = [...this._pendingNotifications];
         this._pendingNotifications = [];
-        const notified = new Set();
+        const finalValues = {};
+        const firstOldValues = {};
         notifications.forEach(({ key, value, oldValue }) => {
-            if (!notified.has(key)) {
-                notified.add(key);
-                this._notify(key, value, oldValue);
+            if (!(key in firstOldValues)) {
+                firstOldValues[key] = oldValue;
             }
+            finalValues[key] = value;
+        });
+        Object.keys(finalValues).forEach(key => {
+            this._notify(key, finalValues[key], firstOldValues[key]);
         });
     }
 
@@ -84,7 +88,14 @@ export class Store {
 
     persist(key) {
         const data = {};
-        const persistKeys = key || Object.keys(this._state);
+        let persistKeys;
+        if (!key) {
+            persistKeys = Object.keys(this._state);
+        } else if (Array.isArray(key)) {
+            persistKeys = key;
+        } else {
+            persistKeys = [key];
+        }
         persistKeys.forEach(k => {
             data[k] = this._state[k];
         });
