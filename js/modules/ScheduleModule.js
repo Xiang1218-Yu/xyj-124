@@ -1,4 +1,6 @@
-import { formatDate, getTodayStr } from '../utils/helpers.js';
+import { formatDate, getTodayStr, startOfDay, addDays, addWeeks, addMonths,
+    isSameDay, getWeekday, getDayOfMonth, getLastDayOfMonth, WEEKDAY_MAP,
+    generateDateRange, formatDateShort } from '../utils/helpers.js';
 import { EmptyState } from '../components/EmptyState.js';
 import { Avatar } from '../components/Avatar.js';
 import { FormField } from '../components/FormField.js';
@@ -13,6 +15,150 @@ export class ScheduleModule {
         this.modal = modal;
         this.toast = toast;
         this.viewMode = 'list';
+        this.calendarMode = 'month';
+        this.calendarDate = startOfDay(Date.now());
+        this.filterTypeIds = [];
+        this.filterMemberIds = [];
+        this.filterStatus = 'all';
+        this._bindKeyboardShortcuts();
+    }
+
+    _bindKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            const scheduleTab = document.getElementById('schedule');
+            if (!scheduleTab || !scheduleTab.classList.contains('active')) return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+            if (this.viewMode !== 'calendar') return;
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    this._navigateCalendar(-1);
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    this._navigateCalendar(1);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    this._navigateCalendar(this.calendarMode === 'month' ? -1 : -7, true);
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    this._navigateCalendar(this.calendarMode === 'month' ? 1 : 7, true);
+                    break;
+                case 't':
+                case 'T':
+                    e.preventDefault();
+                    this.goToToday();
+                    break;
+                case 'm':
+                case 'M':
+                    e.preventDefault();
+                    this.switchCalendarMode('month');
+                    break;
+                case 'w':
+                case 'W':
+                    e.preventDefault();
+                    this.switchCalendarMode('week');
+                    break;
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7': {
+                    e.preventDefault();
+                    const idx = parseInt(e.key) - 1;
+                    const enabledTypes = this.taskTypeService.getEnabled();
+                    if (enabledTypes[idx]) {
+                        this.toggleFilterType(enabledTypes[idx].id);
+                    }
+                    break;
+                }
+                case 'Escape':
+                    e.preventDefault();
+                    this.clearFilters();
+                    break;
+            }
+        });
+    }
+
+    _navigateCalendar(direction, isWeekNav = false) {
+        if (this.calendarMode === 'month') {
+            this.calendarDate = addMonths(this.calendarDate, direction);
+        } else {
+            if (isWeekNav) direction = direction / 7;
+            this.calendarDate = addWeeks(this.calendarDate, direction);
+        }
+        this.render();
+    }
+
+    goToToday() {
+        this.calendarDate = startOfDay(Date.now());
+        this.render();
+    }
+
+    switchCalendarMode(mode) {
+        this.calendarMode = mode;
+        this.render();
+    }
+
+    toggleFilterType(typeId) {
+        const idx = this.filterTypeIds.indexOf(typeId);
+        if (idx === -1) {
+            this.filterTypeIds.push(typeId);
+        } else {
+            this.filterTypeIds.splice(idx, 1);
+        }
+        this.render();
+    }
+
+    toggleFilterMember(memberId) {
+        const idx = this.filterMemberIds.indexOf(memberId);
+        if (idx === -1) {
+            this.filterMemberIds.push(memberId);
+        } else {
+            this.filterMemberIds.splice(idx, 1);
+        }
+        this.render();
+    }
+
+    setFilterStatus(status) {
+        this.filterStatus = status;
+        this.render();
+    }
+
+    clearFilters() {
+        this.filterTypeIds = [];
+        this.filterMemberIds = [];
+        this.filterStatus = 'all';
+        this.render();
+    }
+
+    _getFilteredSchedules() {
+        let schedules = this.scheduleService.getAll();
+
+        if (this.filterTypeIds.length > 0) {
+            schedules = schedules.filter(s => this.filterTypeIds.includes(s.type));
+        }
+        if (this.filterMemberIds.length > 0) {
+            schedules = schedules.filter(s => this.filterMemberIds.includes(s.memberId));
+        }
+        if (this.filterStatus !== 'all') {
+            const now = startOfDay(Date.now());
+            if (this.filterStatus === 'completed') {
+                schedules = schedules.filter(s => s.completed);
+            } else if (this.filterStatus === 'pending') {
+                schedules = schedules.filter(s => !s.completed && s.date >= now);
+            } else if (this.filterStatus === 'overdue') {
+                schedules = schedules.filter(s => !s.completed && s.date < now);
+            }
+        }
+
+        return schedules.sort((a, b) => a.date - b.date);
     }
 
     _lightenColor(hex) {
@@ -23,38 +169,67 @@ export class ScheduleModule {
         return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
 
+    _darkenColor(hex, percent = 30) {
+        const num = parseInt(hex.slice(1), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = Math.max(0, (num >> 16) - amt);
+        const G = Math.max(0, (num >> 8 & 0x00FF) - amt);
+        const B = Math.max(0, (num & 0x0000FF) - amt);
+        return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
+    }
+
     render() {
         const enabledTypes = this.taskTypeService.getEnabled();
         const grid = document.getElementById('scheduleGrid');
         const rulesContainer = document.getElementById('scheduleRulesContainer');
         const actionsBar = document.getElementById('scheduleActionBar');
+        const filterBar = document.getElementById('scheduleFilterBar');
 
         if (!actionsBar) return;
+
+        const showListBtn = this.viewMode === 'list' ? 'active' : '';
+        const showCalendarBtn = this.viewMode === 'calendar' ? 'active' : '';
+        const showRulesBtn = this.viewMode === 'rules' ? 'active' : '';
 
         actionsBar.innerHTML = enabledTypes.length === 0 ? '' : `
             <div class="schedule-action-bar">
                 <div class="schedule-view-toggle">
-                    <button class="view-btn ${this.viewMode === 'list' ? 'active' : ''}" onclick="window._app.switchScheduleView('list')">📋 列表视图</button>
-                    <button class="view-btn ${this.viewMode === 'rules' ? 'active' : ''}" onclick="window._app.switchScheduleView('rules')">⚙️ 规则管理</button>
+                    <button class="view-btn ${showListBtn}" onclick="window._app.switchScheduleView('list')">📋 列表</button>
+                    <button class="view-btn ${showCalendarBtn}" onclick="window._app.switchScheduleView('calendar')">📅 日历</button>
+                    <button class="view-btn ${showRulesBtn}" onclick="window._app.switchScheduleView('rules')">⚙️ 规则</button>
                 </div>
                 <div class="schedule-action-btns">
+                    ${this.viewMode === 'calendar' ? `
+                        <button class="btn btn-secondary btn-sm" onclick="window._app.calGoToday()" title="今天 (T)">📍 今天</button>
+                    ` : ''}
                     ${this.viewMode === 'list' ? `
                         <button class="btn btn-secondary btn-sm" onclick="window._app.showBatchGenerateModal()">⚡ 批量生成</button>
-                    ` : `
+                    ` : ''}
+                    ${this.viewMode === 'rules' ? `
                         <button class="btn btn-secondary btn-sm" onclick="window._app.showAddRuleModal()">+ 新建规则</button>
-                    `}
+                    ` : ''}
+                    <button class="btn btn-primary btn-sm" onclick="window._app.showAddScheduleModal()">+ 新建排班</button>
                 </div>
             </div>
+            ${this.viewMode === 'calendar' ? this._renderCalendarNav() : ''}
         `;
 
         if (enabledTypes.length === 0) {
             grid.innerHTML = EmptyState.render('请先在「任务配置」中启用任务类型');
+            if (filterBar) filterBar.innerHTML = '';
             if (rulesContainer) rulesContainer.innerHTML = '';
             return;
         }
 
+        if (filterBar && this.viewMode === 'calendar') {
+            this._renderFilterBar(filterBar, enabledTypes);
+        } else if (filterBar) {
+            filterBar.innerHTML = '';
+        }
+
         if (this.viewMode === 'list') {
             grid.style.display = 'grid';
+            if (filterBar) filterBar.style.display = 'none';
             if (rulesContainer) rulesContainer.style.display = 'none';
             grid.innerHTML = enabledTypes.map(type => `
                 <div class="schedule-column">
@@ -68,13 +243,429 @@ export class ScheduleModule {
             enabledTypes.forEach(type => {
                 this.renderScheduleColumn(type.id);
             });
+        } else if (this.viewMode === 'calendar') {
+            grid.style.display = 'block';
+            if (filterBar) filterBar.style.display = 'flex';
+            if (rulesContainer) rulesContainer.style.display = 'none';
+            grid.innerHTML = this.calendarMode === 'month'
+                ? this._renderMonthCalendar()
+                : this._renderWeekCalendar();
         } else {
             grid.style.display = 'none';
+            if (filterBar) filterBar.style.display = 'none';
             if (rulesContainer) {
                 rulesContainer.style.display = 'block';
                 this.renderRulesList();
             }
         }
+    }
+
+    _renderCalendarNav() {
+        const d = new Date(this.calendarDate);
+        const title = this.calendarMode === 'month'
+            ? `${d.getFullYear()} 年 ${d.getMonth() + 1} 月`
+            : `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 第 ${this._getWeekNumber()} 周`;
+
+        const monthBtn = this.calendarMode === 'month' ? 'active' : '';
+        const weekBtn = this.calendarMode === 'week' ? 'active' : '';
+
+        return `
+            <div class="calendar-nav">
+                <div class="calendar-nav-left">
+                    <button class="cal-nav-btn" onclick="window._app.calPrev()" title="←">‹</button>
+                    <button class="cal-nav-btn" onclick="window._app.calGoToday()" title="今天 (T)">今天</button>
+                    <button class="cal-nav-btn" onclick="window._app.calNext()" title="→">›</button>
+                    <span class="calendar-title">${title}</span>
+                </div>
+                <div class="calendar-nav-right">
+                    <div class="cal-mode-toggle">
+                        <button class="cal-mode-btn ${monthBtn}" onclick="window._app.calSwitchMode('month')" title="月视图 (M)">月</button>
+                        <button class="cal-mode-btn ${weekBtn}" onclick="window._app.calSwitchMode('week')" title="周视图 (W)">周</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    _getWeekNumber() {
+        const d = new Date(this.calendarDate);
+        const start = new Date(d.getFullYear(), 0, 1);
+        const days = Math.floor((d - start) / (24 * 60 * 60 * 1000));
+        return Math.ceil((days + start.getDay() + 1) / 7);
+    }
+
+    _renderFilterBar(filterBar, enabledTypes) {
+        const members = this.memberService.getAll();
+
+        const typeFilters = enabledTypes.map((type, idx) => {
+            const active = this.filterTypeIds.includes(type.id);
+            const style = active
+                ? `background: ${type.color}; color: white; border-color: ${type.color};`
+                : `background: white; color: var(--text-primary); border-color: var(--border);`;
+            return `
+                <button class="filter-chip" style="${style}" onclick="window._app.calToggleType('${type.id}')" title="按 ${idx + 1} 快速切换">
+                    ${type.emoji} ${type.name}
+                </button>
+            `;
+        }).join('');
+
+        const memberFilters = members.map(m => {
+            const active = this.filterMemberIds.includes(m.id);
+            const style = active
+                ? `background: var(--primary); color: white; border-color: var(--primary);`
+                : `background: white; color: var(--text-primary); border-color: var(--border);`;
+            return `
+                <button class="filter-chip filter-chip-sm" style="${style}" onclick="window._app.calToggleMember('${m.id}')">
+                    ${Avatar.render(m, 'xs')} ${m.name}
+                </button>
+            `;
+        }).join('');
+
+        const statusOptions = [
+            { v: 'all', label: '全部' },
+            { v: 'pending', label: '待执行' },
+            { v: 'completed', label: '已完成' },
+            { v: 'overdue', label: '已逾期' }
+        ];
+
+        const statusBtns = statusOptions.map(opt => {
+            const active = this.filterStatus === opt.v;
+            return `
+                <button class="filter-chip ${active ? 'filter-chip-active' : ''}" onclick="window._app.calSetStatus('${opt.v}')">
+                    ${opt.label}
+                </button>
+            `;
+        }).join('');
+
+        const hasFilters = this.filterTypeIds.length > 0 || this.filterMemberIds.length > 0 || this.filterStatus !== 'all';
+
+        filterBar.innerHTML = `
+            <div class="schedule-filter-bar">
+                <div class="filter-section">
+                    <span class="filter-label">任务类型：</span>
+                    <div class="filter-chips-wrap">${typeFilters}</div>
+                </div>
+                <div class="filter-section">
+                    <span class="filter-label">成员：</span>
+                    <div class="filter-chips-wrap">${memberFilters}</div>
+                </div>
+                <div class="filter-section">
+                    <span class="filter-label">状态：</span>
+                    <div class="filter-chips-wrap">${statusBtns}</div>
+                </div>
+                ${hasFilters ? `
+                    <div class="filter-section">
+                        <button class="btn btn-secondary btn-sm" onclick="window._app.calClearFilters()" title="ESC 清除筛选">清除筛选</button>
+                    </div>
+                ` : ''}
+            </div>
+            <div class="calendar-shortcuts-tip">
+                ⌨️ 快捷键：← → 切换 ${this.calendarMode === 'month' ? '月份' : '周'} · T 今天 · M 月视图 · W 周视图 · 1-7 切换任务类型 · ESC 清除筛选
+            </div>
+        `;
+    }
+
+    _renderMonthCalendar() {
+        const d = new Date(this.calendarDate);
+        const year = d.getFullYear();
+        const month = d.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const lastDate = getLastDayOfMonth(year, month);
+        const today = startOfDay(Date.now());
+
+        const schedules = this._getFilteredSchedules();
+        const taskTypes = this.taskTypeService.getAllAsObject();
+        const members = {};
+        this.memberService.getAll().forEach(m => { members[m.id] = m; });
+
+        const schedulesByDay = {};
+        schedules.forEach(s => {
+            const key = new Date(s.date).toDateString();
+            if (!schedulesByDay[key]) schedulesByDay[key] = [];
+            schedulesByDay[key].push(s);
+        });
+
+        let daysHtml = '';
+        for (let i = 0; i < firstDay; i++) {
+            daysHtml += `<div class="cal-cell cal-cell-other"></div>`;
+        }
+
+        for (let day = 1; day <= lastDate; day++) {
+            const dateTs = new Date(year, month, day).getTime();
+            const key = new Date(dateTs).toDateString();
+            const daySchedules = schedulesByDay[key] || [];
+            const isToday = isSameDay(dateTs, today);
+            const weekday = getWeekday(dateTs);
+            const isWeekend = weekday === 0 || weekday === 6;
+
+            const cellClass = [
+                'cal-cell',
+                isToday ? 'cal-cell-today' : '',
+                isWeekend ? 'cal-cell-weekend' : ''
+            ].join(' ');
+
+            const dayEventsHtml = daySchedules.slice(0, 3).map(s => {
+                const type = taskTypes[s.type];
+                const member = members[s.memberId];
+                const color = type ? type.color : '#94a3b8';
+                const completedClass = s.completed ? 'cal-event-completed' : '';
+                const overdueClass = !s.completed && dateTs < today ? 'cal-event-overdue' : '';
+                return `
+                    <div class="cal-event ${completedClass} ${overdueClass}"
+                         style="background: ${this._lightenColor(color)}; border-left: 3px solid ${color};"
+                         onclick="window._app.calShowEvent('${s.id}')"
+                         title="${type ? type.name : '未知'} · ${member ? member.name : '未知'} · ${formatDate(s.date)}">
+                        ${type ? type.emoji : '📌'} <span class="cal-event-text">${member ? member.name : '?'}</span>
+                    </div>
+                `;
+            }).join('');
+
+            const moreCount = daySchedules.length - 3;
+            const moreHtml = moreCount > 0
+                ? `<div class="cal-event-more" onclick="window._app.calShowDay(${dateTs})">+${moreCount} 更多</div>`
+                : '';
+
+            daysHtml += `
+                <div class="${cellClass}" onclick="window._app.calShowDay(${dateTs})">
+                    <div class="cal-cell-header">
+                        <span class="cal-day-number ${isToday ? 'cal-day-today' : ''}">${day}</span>
+                        ${daySchedules.length > 0 ? `<span class="cal-count-dot">${daySchedules.length}</span>` : ''}
+                    </div>
+                    <div class="cal-cell-events">
+                        ${dayEventsHtml}
+                        ${moreHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        const totalCells = firstDay + lastDate;
+        const trailing = (7 - (totalCells % 7)) % 7;
+        for (let i = 0; i < trailing; i++) {
+            daysHtml += `<div class="cal-cell cal-cell-other"></div>`;
+        }
+
+        const weekdayHeaders = Object.values(WEEKDAY_MAP).map(w =>
+            `<div class="cal-weekday">${w.name}</div>`
+        ).join('');
+
+        return `
+            <div class="calendar-container">
+                <div class="cal-weekday-row">${weekdayHeaders}</div>
+                <div class="cal-grid">${daysHtml}</div>
+            </div>
+        `;
+    }
+
+    _renderWeekCalendar() {
+        const base = new Date(this.calendarDate);
+        const weekday = base.getDay();
+        const weekStart = addDays(base.getTime(), -weekday);
+        const today = startOfDay(Date.now());
+
+        const schedules = this._getFilteredSchedules();
+        const taskTypes = this.taskTypeService.getAllAsObject();
+        const members = {};
+        this.memberService.getAll().forEach(m => { members[m.id] = m; });
+
+        const weekDays = generateDateRange(weekStart, 7);
+        const schedulesByDay = {};
+        schedules.forEach(s => {
+            const key = new Date(s.date).toDateString();
+            if (!schedulesByDay[key]) schedulesByDay[key] = [];
+            schedulesByDay[key].push(s);
+        });
+
+        const hourRows = [];
+        for (let h = 0; h < 24; h++) {
+            hourRows.push(`<div class="cal-week-hour">${String(h).padStart(2, '0')}:00</div>`);
+        }
+
+        const headerHtml = weekDays.map(dateTs => {
+            const d = new Date(dateTs);
+            const isToday = isSameDay(dateTs, today);
+            const wd = WEEKDAY_MAP[d.getDay()];
+            const dayNum = d.getDate();
+            const key = d.toDateString();
+            const count = (schedulesByDay[key] || []).length;
+
+            return `
+                <div class="cal-week-header-cell ${isToday ? 'cal-cell-today' : ''}">
+                    <div class="cal-week-header-top">
+                        <span class="cal-week-weekday">${wd.name}</span>
+                        <span class="cal-day-number ${isToday ? 'cal-day-today' : ''}">${dayNum}</span>
+                        ${count > 0 ? `<span class="cal-count-dot">${count}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        const timeSlotHtml = weekDays.map(dateTs => {
+            const d = new Date(dateTs);
+            const key = d.toDateString();
+            const isToday = isSameDay(dateTs, today);
+            const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+            const daySchedules = (schedulesByDay[key] || []).sort((a, b) => a.date - b.date);
+
+            const eventsHtml = daySchedules.map(s => {
+                const type = taskTypes[s.type];
+                const member = members[s.memberId];
+                const color = type ? type.color : '#94a3b8';
+                const completedClass = s.completed ? 'cal-event-completed' : '';
+                const overdueClass = !s.completed && dateTs < today ? 'cal-event-overdue' : '';
+
+                return `
+                    <div class="cal-week-event ${completedClass} ${overdueClass}"
+                         style="background: ${this._lightenColor(color)}; border-left: 4px solid ${color};"
+                         onclick="window._app.calShowEvent('${s.id}')">
+                        <div class="cal-week-event-title">
+                            <span style="color: ${color}; font-weight: 600;">${type ? type.emoji : '📌'} ${type ? type.name : '未知'}</span>
+                        </div>
+                        <div class="cal-week-event-person">
+                            ${Avatar.render(member, 'xs')}
+                            <span>${member ? member.name : '未知'}</span>
+                            ${s.completed ? '<span class="badge-done">✓ 已完成</span>' : ''}
+                            ${!s.completed && dateTs < today ? '<span class="badge-overdue">逾期</span>' : ''}
+                        </div>
+                        ${s.substituteType ? `
+                            <div class="cal-week-event-sub">
+                                ${s.substituteType === 'swap' ? '🔄 换值' : '👤 代值'}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="cal-week-day-col ${isToday ? 'col-today' : ''} ${isWeekend ? 'col-weekend' : ''}">
+                    <div class="cal-week-day-date" onclick="window._app.calShowDay(${dateTs})">
+                        ${d.getMonth() + 1}/${d.getDate()} ${isToday ? '· 今天' : ''}
+                    </div>
+                    <div class="cal-week-events">
+                        ${eventsHtml || '<div class="cal-week-empty" onclick="window._app.calShowDay(' + dateTs + ')">+ 点击添加排班</div>'}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="calendar-container">
+                <div class="cal-week-grid">
+                    <div class="cal-week-header-spacer"></div>
+                    <div class="cal-week-header-row">${headerHtml}</div>
+                    <div class="cal-week-body">
+                        ${timeSlotHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    showDayModal(dateTs) {
+        const d = new Date(dateTs);
+        const dateStr = formatDate(dateTs);
+        const enabledTypes = this.taskTypeService.getEnabled();
+        const members = this.memberService.getAll();
+        const taskTypes = this.taskTypeService.getAllAsObject();
+        const memberObj = {};
+        members.forEach(m => { memberObj[m.id] = m; });
+
+        const today = startOfDay(Date.now());
+        const schedules = this.scheduleService.getAll()
+            .filter(s => isSameDay(s.date, dateTs))
+            .sort((a, b) => a.date - b.date);
+
+        const eventsHtml = schedules.length === 0
+            ? `<p class="empty-state" style="padding: 20px;">当天暂无排班</p>`
+            : schedules.map(s => {
+                const type = taskTypes[s.type];
+                const member = memberObj[s.memberId];
+                const color = type ? type.color : '#94a3b8';
+                const isOverdue = !s.completed && dateTs < today;
+                const statusBadge = s.completed
+                    ? '<span class="schedule-status done">已完成</span>'
+                    : isOverdue
+                        ? '<span class="schedule-status overdue">逾期</span>'
+                        : '<span class="schedule-status pending">待执行</span>';
+
+                return `
+                    <div class="cal-day-event" style="border-left: 4px solid ${color}; background: ${this._lightenColor(color)};">
+                        <div class="cal-day-event-main">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <strong>${type ? type.emoji + ' ' + type.name : '未知任务'}</strong>
+                                ${statusBadge}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+                                ${Avatar.render(member, 'sm')}
+                                <span>${member ? member.name : '未知成员'}</span>
+                                ${s.substituteType ? `
+                                    <span class="substitute-badge ${s.substituteType}">
+                                        ${s.substituteType === 'swap' ? '🔄 换值' : '👤 代值'}
+                                    </span>
+                                ` : ''}
+                            </div>
+                            ${s.substituteNote ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">📝 ${s.substituteNote}</div>` : ''}
+                        </div>
+                        <div class="cal-day-event-actions">
+                            ${!s.completed ? `
+                                <button class="btn btn-success btn-sm" onclick="window._app.markScheduleDone('${s.id}'); window._app.closeModal();">✓ 完成</button>
+                                <button class="btn btn-info btn-sm" onclick="window._app.showSwapModal('${s.id}')">↔️</button>
+                                <button class="btn btn-warning btn-sm" onclick="window._app.showSubstituteModal('${s.id}')">👥</button>
+                            ` : ''}
+                            <button class="btn btn-danger btn-sm" onclick="window._app.deleteSchedule('${s.id}'); window._app.closeModal();">×</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+        const form = `
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin-bottom: 12px; font-size: 15px;">📌 当天排班</h4>
+                ${eventsHtml}
+            </div>
+            <div style="border-top: 1px solid var(--border); padding-top: 20px;">
+                <h4 style="margin-bottom: 12px; font-size: 15px;">➕ 快速添加</h4>
+                <form onsubmit="window._app.calQuickAdd(event, ${dateTs})">
+                    <div class="form-group">
+                        <label>任务类型</label>
+                        <select id="calQuickType" required>
+                            <option value="">请选择</option>
+                            ${enabledTypes.map(t => `<option value="${t.id}">${t.emoji} ${t.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>值班成员</label>
+                        <select id="calQuickMember" required>
+                            <option value="">请选择</option>
+                            ${members.map(m => `<option value="${m.id}">${m.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="window._app.closeModal()">关闭</button>
+                        <button type="submit" class="btn btn-primary">添加排班</button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        this.modal.open(`📅 ${dateStr} 排班详情`, form);
+    }
+
+    showEventModal(scheduleId) {
+        const schedule = this.scheduleService.getById(scheduleId);
+        if (!schedule) return;
+        this.showDayModal(schedule.date);
+    }
+
+    quickAddSchedule(event, dateTs) {
+        event.preventDefault();
+        const typeId = document.getElementById('calQuickType').value;
+        const memberId = document.getElementById('calQuickMember').value;
+        if (!typeId || !memberId) return;
+
+        this.scheduleService.add(memberId, typeId, dateTs);
+        this.modal.close();
+        this.toast.show('排班已添加');
     }
 
     renderScheduleColumn(typeId) {
